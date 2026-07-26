@@ -13,8 +13,10 @@ drop policy if exists place_signals_own on place_signals;
 create policy place_signals_own on place_signals
   for all using (profile_id = auth.uid()) with check (profile_id = auth.uid());
 
--- Public place detail with coordinates (approved only).
-create or replace function place_detail(p_id uuid)
+-- Public place detail with coordinates (approved only). Drop first so the
+-- bundle re-runs cleanly after later shape changes.
+drop function if exists place_detail(uuid);
+create function place_detail(p_id uuid)
 returns table (
   id uuid, name text, kind text, description text, address text,
   website text, opening_notes text, source text, source_url text,
@@ -32,8 +34,9 @@ language sql stable as $$
   where p.id = p_id and p.status = 'approved';
 $$;
 
--- City centroid and metadata for the city page.
-create or replace function city_detail(p_slug text)
+-- City centroid and metadata for the city page. Drop first: 0015 reshapes it.
+drop function if exists city_detail(text);
+create function city_detail(p_slug text)
 returns table (
   id bigint, name text, country_code text, slug text,
   lng double precision, lat double precision,

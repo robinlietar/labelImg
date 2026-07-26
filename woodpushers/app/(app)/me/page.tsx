@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
 import { AvailabilityToggle } from "@/components/profile/AvailabilityToggle";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
 import { LocationSettings } from "@/components/profile/LocationSettings";
 import { Button } from "@/components/ui/button";
@@ -49,9 +50,7 @@ export default async function MePage({
         </p>
       )}
       <header className="flex items-center gap-4">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary text-2xl">
-          ♟
-        </div>
+        <AvatarUpload userId={profile.id} currentUrl={profile.avatar_url} />
         <div>
           <h1 className="text-xl font-semibold">{profile.display_name}</h1>
           <p className="text-sm text-muted-foreground">@{profile.handle}</p>

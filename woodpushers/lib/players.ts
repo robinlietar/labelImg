@@ -5,6 +5,7 @@ export type PlayerRow = {
   handle: string;
   display_name: string;
   bio: string | null;
+  avatar_url: string | null;
   lichess_username: string | null;
   lichess_ratings: Record<string, number> | null;
   lichess_verified: boolean;

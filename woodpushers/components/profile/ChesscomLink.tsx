@@ -75,17 +75,40 @@ export function ChesscomLink({ initialUsername }: { initialUsername: string | nu
 
       {step === "code" && (
         <div className="rounded-lg border border-border bg-secondary/50 p-3 text-sm">
-          <p>
-            1. Copy this code:{" "}
-            <span className="rounded bg-background px-2 py-0.5 font-mono font-semibold tracking-widest">
-              {code}
-            </span>
+          <p className="font-medium">Prove this account is yours:</p>
+          <ol className="mt-2 list-decimal space-y-2 pl-5">
+            <li>
+              Copy this code:{" "}
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(code)}
+                className="rounded bg-background px-2 py-0.5 font-mono font-semibold tracking-widest active:bg-accent"
+                title="Tap to copy"
+              >
+                {code}
+              </button>{" "}
+              <span className="text-xs text-muted-foreground">(tap to copy)</span>
+            </li>
+            <li>
+              Open{" "}
+              <a
+                href="https://www.chess.com/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline"
+              >
+                chess.com/settings
+              </a>{" "}
+              (sign in if asked). Find the{" "}
+              <span className="font-medium">Location</span> field under your
+              profile details.
+            </li>
+            <li>Paste the code there and hit Save.</li>
+            <li>Come back here and tap Verify.</li>
+          </ol>
+          <p className="mt-2 text-xs text-muted-foreground">
+            After verifying you can delete the code from your Location again.
           </p>
-          <p className="mt-1">
-            2. Paste it into your chess.com profile{" "}
-            <span className="font-medium">Location</span> field and save.
-          </p>
-          <p className="mt-1">3. Come back and tap Verify. Remove the code after.</p>
           <Button className="mt-3" onClick={verify} disabled={busy}>
             {busy ? "Checking..." : "Verify"}
           </Button>

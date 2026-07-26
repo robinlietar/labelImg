@@ -144,6 +144,73 @@ export async function saveCityChat(
   revalidatePath("/admin");
 }
 
+export type PlaceEdits = {
+  name?: string;
+  kind?: string;
+  address?: string;
+  website?: string;
+  description?: string;
+  opening_notes?: string;
+  status?: "pending" | "approved" | "rejected";
+  lat?: number | null;
+  lng?: number | null;
+};
+
+/**
+ * Edit any place. Coordinates: explicit lat/lng win; otherwise a changed
+ * address is re-geocoded via Nominatim.
+ */
+export async function updatePlace(
+  placeId: string,
+  edits: PlaceEdits,
+  addressChanged: boolean,
+): Promise<AdminActionResult> {
+  if (!(await assertAdmin())) return { ok: false, error: "not admin" };
+  const svc = createServiceClient();
+
+  const fields: Record<string, unknown> = {};
+  if (edits.name?.trim()) fields.name = edits.name.trim();
+  if (edits.kind) fields.kind = edits.kind;
+  if (edits.address !== undefined) fields.address = edits.address.trim() || null;
+  if (edits.website !== undefined) fields.website = safeHttpUrl(edits.website);
+  if (edits.description !== undefined)
+    fields.description = edits.description.trim() || null;
+  if (edits.opening_notes !== undefined)
+    fields.opening_notes = edits.opening_notes.trim() || null;
+  if (edits.status) fields.status = edits.status;
+
+  const { error } = await svc.from("places").update(fields).eq("id", placeId);
+  if (error) return { ok: false, error: error.message };
+
+  const hasManualCoords =
+    typeof edits.lat === "number" && typeof edits.lng === "number";
+  if (hasManualCoords) {
+    await svc.rpc("set_place_location", {
+      p_id: placeId,
+      p_lng: edits.lng,
+      p_lat: edits.lat,
+    });
+  } else if (addressChanged && edits.address?.trim()) {
+    const { geocode } = await import("@/lib/nominatim");
+    const g = await geocode(edits.address);
+    if (g) {
+      await svc.rpc("set_place_location", {
+        p_id: placeId,
+        p_lng: g.lng,
+        p_lat: g.lat,
+      });
+    } else {
+      revalidatePath("/admin");
+      return {
+        ok: true,
+        error: "Saved, but the new address did not geocode; set lat/lng manually.",
+      };
+    }
+  }
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 export async function resolveReport(reportId: string): Promise<void> {
   if (!(await assertAdmin())) return;
   const svc = createServiceClient();

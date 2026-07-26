@@ -4,17 +4,22 @@ import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { APP } from "@/lib/config";
 import { SubmissionCard, type Submission } from "@/components/admin/SubmissionCard";
-import { PendingPlaceRow, type PendingPlace } from "@/components/admin/PendingPlaceRow";
+import { EditablePlaceCard, type AdminPlace } from "@/components/admin/EditablePlaceCard";
 import { CityChatEditor, type CityChatRow } from "@/components/admin/CityChatEditor";
 import { ReportRow, type ReportItem } from "@/components/admin/ReportRow";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pq?: string }>;
+}) {
   const user = await getUser();
   if (!user) redirect("/login");
   if (!isAdmin(user.id)) redirect("/");
+  const { pq } = await searchParams;
 
   const svc = createServiceClient();
 
@@ -31,12 +36,7 @@ export default async function AdminPage() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(50),
-    svc
-      .from("places")
-      .select("id, name, kind, address, source, source_url, confidence")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(100),
+    svc.rpc("admin_places", { q: null, only_pending: true, max_count: 100 }),
     svc
       .from("scrape_runs")
       .select("id, started_at, finished_at, cities, error")
@@ -57,7 +57,11 @@ export default async function AdminPage() {
   ]);
 
   const submissions = (subs ?? []) as Submission[];
-  const pendingPlaces = (places ?? []) as PendingPlace[];
+  const pendingPlaces = (places ?? []) as AdminPlace[];
+  const searched: AdminPlace[] = pq
+    ? (((await svc.rpc("admin_places", { q: pq, only_pending: false, max_count: 20 })).data ??
+        []) as AdminPlace[])
+    : [];
   const cityRows: CityChatRow[] = (cities ?? []).map((c) => {
     const chat = Array.isArray(c.city_chats) ? c.city_chats[0] : c.city_chats;
     return {
@@ -101,12 +105,37 @@ export default async function AdminPage() {
         {pendingPlaces.length === 0 ? (
           <Empty>Nothing pending.</Empty>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {pendingPlaces.map((p) => (
-              <PendingPlaceRow key={p.id} place={p} />
+              <EditablePlaceCard key={p.id} place={p} />
             ))}
           </div>
         )}
+      </Section>
+
+      <Section title="Edit any place">
+        <form method="get" className="flex gap-2">
+          <input
+            type="search"
+            name="pq"
+            defaultValue={pq ?? ""}
+            placeholder="Search places by name or address"
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          />
+          <button className="h-11 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
+            Search
+          </button>
+        </form>
+        {pq &&
+          (searched.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No matches.</p>
+          ) : (
+            <div className="mt-3 flex flex-col gap-3">
+              {searched.map((p) => (
+                <EditablePlaceCard key={p.id} place={p} />
+              ))}
+            </div>
+          ))}
       </Section>
 
       <Section title={`Reports (${reportRows.length})`}>

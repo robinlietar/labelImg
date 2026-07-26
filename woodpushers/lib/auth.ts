@@ -19,6 +19,7 @@ export type Profile = {
   handle: string;
   display_name: string;
   bio: string | null;
+  avatar_url: string | null;
   lichess_username: string | null;
   lichess_ratings: Record<string, number> | null;
   lichess_verified: boolean;
@@ -50,7 +51,7 @@ export async function getProfile(): Promise<Profile | null> {
     const { data } = await supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, home_city_id, visible, last_seen_at",
+        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, home_city_id, visible, last_seen_at",
       )
       .eq("id", user.id)
       .maybeSingle();

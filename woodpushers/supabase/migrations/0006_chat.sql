@@ -21,7 +21,10 @@ exception when duplicate_object then null;
 end $$;
 
 -- Conversation list for the current user: other member, last message, unread.
-create or replace function my_conversations()
+-- Drop first: later migrations change the return shape, and this bundle must
+-- stay safe to re-run end to end.
+drop function if exists my_conversations();
+create function my_conversations()
 returns table (
   conversation_id uuid, other_handle text, other_display_name text,
   last_body text, last_at timestamptz, unread int

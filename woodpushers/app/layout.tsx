@@ -37,7 +37,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased md:bg-muted">
+        {/* Phone-frame column on laptop/desktop: the app stays mobile-first
+            but renders as a clean centered column instead of stretching. */}
+        <div className="relative mx-auto min-h-dvh w-full max-w-md bg-background md:border-x md:border-border md:shadow-sm">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

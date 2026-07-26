@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { Avatar } from "@/components/Avatar";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ProfileActions } from "@/components/players/ProfileActions";
 import { availabilityLabel, activity, type PlayerRow } from "@/lib/players";
@@ -21,7 +22,7 @@ export default async function PublicProfile({
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, self_rating_band, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
+      "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, self_rating_band, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
     )
     .eq("handle", handle)
     .maybeSingle();
@@ -41,9 +42,7 @@ export default async function PublicProfile({
         </p>
       )}
       <header className="flex items-center gap-4">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary text-2xl">
-          ♟
-        </div>
+        <Avatar url={p.avatar_url} size={64} />
         <div>
           <h1 className="text-xl font-semibold">{p.display_name}</h1>
           <p className="text-sm text-muted-foreground">@{p.handle}</p>

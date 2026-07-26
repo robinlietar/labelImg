@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Chats" };
 
@@ -9,6 +10,7 @@ type Conversation = {
   conversation_id: string;
   other_handle: string;
   other_display_name: string;
+  other_avatar_url: string | null;
   last_body: string | null;
   last_at: string | null;
   unread: number;
@@ -38,9 +40,7 @@ export default async function ChatListPage() {
                 href={`/chat/${c.conversation_id}`}
                 className="flex items-center gap-3 py-3"
               >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary">
-                  ♟
-                </div>
+                <Avatar url={c.other_avatar_url} size={44} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate font-medium">{c.other_display_name}</p>

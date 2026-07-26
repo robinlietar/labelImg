@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/Avatar";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import {
   activity,
@@ -28,9 +29,7 @@ export function PlayerCard({ player }: { player: PlayerRow }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary">
-            ♟
-          </div>
+          <Avatar url={player.avatar_url} size={44} />
           <div>
             <p className="font-medium leading-tight">{player.display_name}</p>
             <p className="text-xs text-muted-foreground">@{player.handle}</p>
