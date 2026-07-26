@@ -38,6 +38,32 @@
     --radius: 0.625rem;
   }
 
+  /* Follow the OS preference from day one. The .dark class below lets an
+     explicit in-app toggle override it later. */
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --background: 220 15% 11%;
+      --foreground: 40 20% 92%;
+      --card: 220 15% 14%;
+      --card-foreground: 40 20% 92%;
+      --popover: 220 15% 14%;
+      --popover-foreground: 40 20% 92%;
+      --primary: 150 38% 45%;
+      --primary-foreground: 220 15% 11%;
+      --secondary: 220 12% 20%;
+      --secondary-foreground: 40 20% 92%;
+      --muted: 220 12% 20%;
+      --muted-foreground: 220 9% 65%;
+      --accent: 150 25% 22%;
+      --accent-foreground: 40 20% 92%;
+      --destructive: 0 55% 52%;
+      --destructive-foreground: 40 20% 92%;
+      --border: 220 12% 24%;
+      --input: 220 12% 24%;
+      --ring: 150 38% 45%;
+    }
+  }
+
   .dark {
     --background: 220 15% 11%; /* park players at night */
     --foreground: 40 20% 92%;
