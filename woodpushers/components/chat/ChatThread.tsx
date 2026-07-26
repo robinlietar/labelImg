@@ -1,0 +1,161 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Send } from "lucide-react";
+
+export type ChatMessage = {
+  id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+export function ChatThread({
+  conversationId,
+  meId,
+  otherName,
+  otherHandle,
+  initialMessages,
+  draft,
+}: {
+  conversationId: string;
+  meId: string;
+  otherName: string;
+  otherHandle: string | null;
+  initialMessages: ChatMessage[];
+  draft: string;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [text, setText] = useState(draft);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  const supabase = useRef(createClient());
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const sb = supabase.current;
+    void sb.rpc("mark_read", { p_conversation_id: conversationId });
+
+    const channel = sb
+      .channel(`messages:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const m = payload.new as ChatMessage;
+          setMessages((prev) =>
+            prev.some((x) => x.id === m.id) ? prev : [...prev, m],
+          );
+          if (m.sender_id !== meId)
+            void sb.rpc("mark_read", { p_conversation_id: conversationId });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void sb.removeChannel(channel);
+    };
+  }, [conversationId, meId]);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const body = text.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setError(null);
+    const { data, error } = await supabase.current
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: meId, body })
+      .select("id, sender_id, body, created_at")
+      .single();
+    setSending(false);
+    if (error) {
+      setError("Message could not be sent.");
+      return;
+    }
+    setText("");
+    if (data)
+      setMessages((prev) =>
+        prev.some((x) => x.id === data.id) ? prev : [...prev, data as ChatMessage],
+      );
+  }
+
+  return (
+    <div className="mx-auto flex h-dvh w-full max-w-md flex-col">
+      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <Link href="/chat" aria-label="Back">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        {otherHandle ? (
+          <Link href={`/p/${otherHandle}`} className="font-medium">
+            {otherName}
+          </Link>
+        ) : (
+          <span className="font-medium">{otherName}</span>
+        )}
+      </header>
+
+      <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
+        {messages.map((m) => {
+          const mine = m.sender_id === meId;
+          return (
+            <div
+              key={m.id}
+              className={mine ? "flex justify-end" : "flex justify-start"}
+            >
+              <div
+                className={
+                  mine
+                    ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                    : "max-w-[80%] rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm"
+                }
+              >
+                {m.body}
+              </div>
+            </div>
+          );
+        })}
+        <div ref={endRef} />
+      </div>
+
+      {error && (
+        <p className="px-4 pb-1 text-center text-xs text-destructive">{error}</p>
+      )}
+
+      <form
+        onSubmit={send}
+        className="flex items-end gap-2 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      >
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Propose a game..."
+          rows={1}
+          maxLength={2000}
+          className="max-h-32 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-2.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void send(e as unknown as React.FormEvent);
+            }
+          }}
+        />
+        <Button type="submit" size="icon" disabled={sending || !text.trim()} aria-label="Send">
+          <Send className="h-5 w-5" />
+        </Button>
+      </form>
+    </div>
+  );
+}

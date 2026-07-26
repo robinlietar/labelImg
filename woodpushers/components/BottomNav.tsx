@@ -25,6 +25,8 @@ const TABS = [
 /** Fixed bottom tab bar for mobile. Big tap targets, safe-area aware. */
 export function BottomNav() {
   const pathname = usePathname();
+  // Full-screen conversation view has its own composer; hide the tab bar there.
+  if (/^\/chat\/[^/]+$/.test(pathname)) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <div className="mx-auto flex max-w-md items-stretch justify-around">

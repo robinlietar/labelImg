@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/BottomNav";
+import { PresencePinger } from "@/components/PresencePinger";
 
 /**
  * App shell for the four main tabs. The bottom nav is fixed; each page manages
@@ -12,6 +13,7 @@ export default function AppLayout({
   return (
     <>
       {children}
+      <PresencePinger />
       <BottomNav />
     </>
   );
