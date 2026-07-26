@@ -1,0 +1,88 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+type Step = "input" | "code" | "done";
+
+/** chess.com linking via the Location-field code trick. */
+export function ChesscomLink({ initialUsername }: { initialUsername: string | null }) {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>(initialUsername ? "input" : "input");
+  const [username, setUsername] = useState(initialUsername ?? "");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function start() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/link/chesscom/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+    const json = await res.json();
+    setBusy(false);
+    if (!res.ok) return setError(json.error ?? "Could not start");
+    setCode(json.code);
+    setStep("code");
+  }
+
+  async function verify() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/link/chesscom/verify", { method: "POST" });
+    const json = await res.json();
+    setBusy(false);
+    if (json.verified) {
+      setStep("done");
+      router.refresh();
+    } else {
+      setError(json.error ?? "Not verified yet");
+    }
+  }
+
+  if (step === "done") {
+    return <p className="text-sm text-primary">chess.com verified.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <Input
+          placeholder="chess.com username"
+          value={username}
+          autoCapitalize="none"
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <Button variant="outline" onClick={start} disabled={busy || !username}>
+          {step === "code" ? "New code" : "Link"}
+        </Button>
+      </div>
+
+      {step === "code" && (
+        <div className="rounded-lg border border-border bg-secondary/50 p-3 text-sm">
+          <p>
+            1. Copy this code:{" "}
+            <span className="rounded bg-background px-2 py-0.5 font-mono font-semibold tracking-widest">
+              {code}
+            </span>
+          </p>
+          <p className="mt-1">
+            2. Paste it into your chess.com profile{" "}
+            <span className="font-medium">Location</span> field and save.
+          </p>
+          <p className="mt-1">3. Come back and tap Verify. Remove the code after.</p>
+          <Button className="mt-3" onClick={verify} disabled={busy}>
+            {busy ? "Checking..." : "Verify"}
+          </Button>
+        </div>
+      )}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
