@@ -8,9 +8,13 @@ export type PlayerRow = {
   lichess_username: string | null;
   lichess_ratings: Record<string, number> | null;
   lichess_verified: boolean;
+  lichess_title: string | null;
+  lichess_meta: Record<string, unknown> | null;
   chesscom_username: string | null;
   chesscom_ratings: Record<string, number> | null;
   chesscom_verified: boolean;
+  chesscom_title: string | null;
+  chesscom_meta: Record<string, unknown> | null;
   preferred_time_controls: string[] | null;
   availability_status: "local" | "visiting";
   visiting_until: string | null;

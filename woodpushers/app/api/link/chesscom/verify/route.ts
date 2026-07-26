@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUser } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/service";
-import { fetchChesscomPlayer, fetchChesscomRatings } from "@/lib/chesscom";
+import { fetchChesscomPlayer, fetchChesscomProfile } from "@/lib/chesscom";
 
 /** Check the code is in the Location field, then mark verified + pull ratings. */
 export async function POST(request: Request) {
@@ -26,13 +26,15 @@ export async function POST(request: Request) {
     });
   }
 
-  const ratings = await fetchChesscomRatings(username);
+  const profile = await fetchChesscomProfile(username);
   const svc = createServiceClient();
   await svc
     .from("profiles")
     .update({
       chesscom_username: username,
-      chesscom_ratings: ratings,
+      chesscom_ratings: profile.ratings,
+      chesscom_title: profile.title,
+      chesscom_meta: profile.meta,
       chesscom_verified: true,
     })
     .eq("id", user.id);

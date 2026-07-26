@@ -18,7 +18,7 @@ export default async function PublicProfile({
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, chesscom_username, chesscom_ratings, chesscom_verified, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
+      "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
     )
     .eq("handle", handle)
     .maybeSingle();
@@ -60,9 +60,13 @@ export default async function PublicProfile({
           lichessUsername={p.lichess_username}
           lichessRatings={p.lichess_ratings}
           lichessVerified={p.lichess_verified}
+          lichessTitle={p.lichess_title}
+          lichessMeta={p.lichess_meta}
           chesscomUsername={p.chesscom_username}
           chesscomRatings={p.chesscom_ratings}
           chesscomVerified={p.chesscom_verified}
+          chesscomTitle={p.chesscom_title}
+          chesscomMeta={p.chesscom_meta}
         />
       </div>
 

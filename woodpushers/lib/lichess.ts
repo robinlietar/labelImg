@@ -68,22 +68,60 @@ export async function fetchAccount(token: string): Promise<string | null> {
   return json.username ?? null;
 }
 
-/** Public ratings for a username. No auth needed. */
-export async function fetchLichessRatings(
+export type ChessProfile = {
+  ratings: Record<string, number>;
+  title: string | null;
+  meta: {
+    games: number | null;
+    fide: number | null;
+    country: string | null;
+    trend: number | null; // rating progress over recent games
+    provisional: boolean;
+  };
+};
+
+/** Public profile: ratings plus title, games, FIDE, trend. No auth needed. */
+export async function fetchLichessProfile(
   username: string,
-): Promise<Record<string, number>> {
+): Promise<ChessProfile> {
   const res = await fetch(`https://lichess.org/api/user/${username}`, {
     headers: { "User-Agent": "WoodPushers/0.1" },
   });
-  if (!res.ok) return {};
+  const empty: ChessProfile = {
+    ratings: {},
+    title: null,
+    meta: { games: null, fide: null, country: null, trend: null, provisional: false },
+  };
+  if (!res.ok) return empty;
   const json = (await res.json()) as {
-    perfs?: Record<string, { rating?: number }>;
+    title?: string;
+    perfs?: Record<string, { rating?: number; games?: number; prog?: number; prov?: boolean }>;
+    count?: { rated?: number; all?: number };
+    profile?: { fideRating?: number; country?: string };
   };
   const perfs = json.perfs ?? {};
-  const out: Record<string, number> = {};
+  const ratings: Record<string, number> = {};
   for (const key of ["blitz", "rapid", "classical", "bullet"]) {
     const r = perfs[key]?.rating;
-    if (typeof r === "number") out[key] = r;
+    if (typeof r === "number") ratings[key] = r;
   }
-  return out;
+  const primary = perfs.rapid ?? perfs.blitz ?? perfs.classical;
+  return {
+    ratings,
+    title: json.title ?? null,
+    meta: {
+      games: json.count?.rated ?? json.count?.all ?? null,
+      fide: json.profile?.fideRating ?? null,
+      country: json.profile?.country ?? null,
+      trend: typeof primary?.prog === "number" ? primary.prog : null,
+      provisional: !!primary?.prov,
+    },
+  };
+}
+
+/** Back-compat: ratings only. */
+export async function fetchLichessRatings(
+  username: string,
+): Promise<Record<string, number>> {
+  return (await fetchLichessProfile(username)).ratings;
 }

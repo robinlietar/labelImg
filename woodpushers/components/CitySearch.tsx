@@ -18,10 +18,12 @@ export function CitySearch({
   name,
   defaultCity,
   placeholder = "Search your city",
+  onSelect,
 }: {
-  name: string;
+  name?: string;
   defaultCity?: City;
   placeholder?: string;
+  onSelect?: (city: City | null) => void;
 }) {
   const [query, setQuery] = useState(
     defaultCity ? `${defaultCity.name}, ${defaultCity.country_code}` : "",
@@ -63,13 +65,14 @@ export function CitySearch({
 
   return (
     <div ref={boxRef} className="relative">
-      <input type="hidden" name={name} value={chosen?.id ?? ""} />
+      {name && <input type="hidden" name={name} value={chosen?.id ?? ""} />}
       <Input
         value={query}
         placeholder={placeholder}
         onChange={(e) => {
           setQuery(e.target.value);
           setChosen(null);
+          onSelect?.(null);
         }}
         onFocus={() => results.length && setOpen(true)}
         autoComplete="off"
@@ -84,6 +87,7 @@ export function CitySearch({
                   setChosen(c);
                   setQuery(`${c.name}, ${c.country_code}`);
                   setOpen(false);
+                  onSelect?.(c);
                 }}
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-secondary"
               >

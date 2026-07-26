@@ -49,9 +49,13 @@ export function PlayerCard({ player }: { player: PlayerRow }) {
         lichessUsername={player.lichess_username}
         lichessRatings={player.lichess_ratings}
         lichessVerified={player.lichess_verified}
+        lichessTitle={player.lichess_title}
+        lichessMeta={player.lichess_meta}
         chesscomUsername={player.chesscom_username}
         chesscomRatings={player.chesscom_ratings}
         chesscomVerified={player.chesscom_verified}
+        chesscomTitle={player.chesscom_title}
+        chesscomMeta={player.chesscom_meta}
       />
 
       <div className="flex flex-wrap items-center gap-1.5 text-xs">

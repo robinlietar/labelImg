@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUser } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/service";
-import { exchangeCode, fetchAccount, fetchLichessRatings } from "@/lib/lichess";
+import { exchangeCode, fetchAccount, fetchLichessProfile } from "@/lib/lichess";
 
 export async function GET(request: Request) {
   const user = await getUser();
@@ -30,14 +30,16 @@ export async function GET(request: Request) {
   const username = await fetchAccount(token);
   if (!username) return fail("error");
 
-  const ratings = await fetchLichessRatings(username);
+  const profile = await fetchLichessProfile(username);
 
   const svc = createServiceClient();
   await svc
     .from("profiles")
     .update({
       lichess_username: username,
-      lichess_ratings: ratings,
+      lichess_ratings: profile.ratings,
+      lichess_title: profile.title,
+      lichess_meta: profile.meta,
       lichess_verified: true,
     })
     .eq("id", user.id);

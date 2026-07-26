@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { getUser, getProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
 import { AvailabilityToggle } from "@/components/profile/AvailabilityToggle";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
+import { LocationSettings } from "@/components/profile/LocationSettings";
 import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Me" };
@@ -17,6 +19,17 @@ export default async function MePage() {
   const openToday =
     !!profile.open_today_until &&
     new Date(profile.open_today_until).getTime() > Date.now();
+
+  let cityName: string | null = null;
+  if (profile.home_city_id) {
+    const supabase = await createClient();
+    const { data: city } = await supabase
+      .from("cities")
+      .select("name, country_code")
+      .eq("id", profile.home_city_id)
+      .maybeSingle();
+    cityName = city ? `${city.name}, ${city.country_code}` : null;
+  }
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
@@ -41,9 +54,13 @@ export default async function MePage() {
             lichessUsername={profile.lichess_username}
             lichessRatings={profile.lichess_ratings}
             lichessVerified={profile.lichess_verified}
+            lichessTitle={profile.lichess_title}
+            lichessMeta={profile.lichess_meta}
             chesscomUsername={profile.chesscom_username}
             chesscomRatings={profile.chesscom_ratings}
             chesscomVerified={profile.chesscom_verified}
+            chesscomTitle={profile.chesscom_title}
+            chesscomMeta={profile.chesscom_meta}
           />
         </div>
 
@@ -58,6 +75,10 @@ export default async function MePage() {
             <ChesscomLink initialUsername={profile.chesscom_username} />
           </div>
         </div>
+      </section>
+
+      <section className="mt-6">
+        <LocationSettings currentCity={cityName} />
       </section>
 
       <section className="mt-6">
