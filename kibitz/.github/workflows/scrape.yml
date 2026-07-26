@@ -1,0 +1,20 @@
+name: Daily scrape (fallback)
+
+# Fallback scheduler if the Vercel plan's function duration limit is too tight
+# for the cron route. Enable ONE of the two schedulers, not both. This workflow
+# is disabled by default; enable it in the repo Actions tab once secrets are set.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scrape endpoint
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/scrape"
