@@ -4,13 +4,13 @@
 -- automatically enriches the 20+ biggest European cities next, with no manual
 -- runs needed. Requires migration 0017 (scrape_priority) from upgrade.sql.
 
--- 1) Correct Blitz Society (was seeded with the wrong street and coordinates).
+-- 1) Correct Blitz Society (owner-confirmed address in Saint-Germain).
 update places set
-  address = '4 Rue Bailleul, 75001 Paris',
-  location = st_setsrid(st_makepoint(2.3419, 48.8606), 4326)::geography,
-  description = 'Chess cafe-bar near the Louvre. Verify current opening hours before traveling.',
-  confidence = 0.5,
-  status = 'pending'
+  address = '4 Rue du Sabot, 75006 Paris',
+  location = st_setsrid(st_makepoint(2.3303, 48.8531), 4326)::geography,
+  description = 'Chess cafe-bar in Saint-Germain-des-Pres, boards at every table.',
+  confidence = 0.9,
+  status = 'approved'
 where name = 'Blitz Society' and source = 'import';
 
 -- 2) Known venues across Europe. Skips any city not yet in the cities table.
