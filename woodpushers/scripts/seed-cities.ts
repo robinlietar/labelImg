@@ -78,10 +78,11 @@ async function main() {
   const iIso2 = idx("iso2");
   const iPop = idx("population");
 
-  const svc = createServiceClient();
-  let inserted = 0;
-  const seenSlugs = new Set<string>();
-
+  // Filter, then sort by population desc so the biggest city with a given name
+  // claims the bare slug (e.g. Sydney AU gets "sydney", Sydney CA gets a
+  // disambiguated slug). This keeps launch-city slugs clean.
+  type Parsed = { name: string; lat: number; lng: number; iso2: string; pop: number };
+  const parsed: Parsed[] = [];
   for (const r of rows.slice(1)) {
     const pop = Number(r[iPop]);
     if (!Number.isFinite(pop) || pop < MIN_POPULATION) continue;
@@ -91,9 +92,17 @@ async function main() {
     const iso2 = r[iIso2]?.trim().toUpperCase();
     if (!name || !iso2 || !Number.isFinite(lat) || !Number.isFinite(lng))
       continue;
+    parsed.push({ name, lat, lng, iso2, pop: Math.round(pop) });
+  }
+  parsed.sort((a, b) => b.pop - a.pop);
 
-    let slug = slugify(`${name}-${iso2}`);
-    // Disambiguate rare slug collisions (same city name and country).
+  const svc = createServiceClient();
+  let inserted = 0;
+  const seenSlugs = new Set<string>();
+
+  for (const { name, lat, lng, iso2, pop } of parsed) {
+    let slug = slugify(name);
+    if (seenSlugs.has(slug)) slug = slugify(`${name}-${iso2}`);
     let n = 2;
     while (seenSlugs.has(slug)) slug = slugify(`${name}-${iso2}-${n++}`);
     seenSlugs.add(slug);
@@ -102,7 +111,7 @@ async function main() {
       p_name: name,
       p_country_code: iso2,
       p_slug: slug,
-      p_population: Math.round(pop),
+      p_population: pop,
       p_lng: lng,
       p_lat: lat,
     });
