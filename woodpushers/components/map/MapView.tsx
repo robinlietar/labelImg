@@ -11,7 +11,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { PlaceKind, PlacePoint } from "@/lib/places";
 import { PlaceSheet } from "@/components/map/PlaceSheet";
 import { KindFilter } from "@/components/map/KindFilter";
-import { LocateFixed, Search } from "lucide-react";
+import Link from "next/link";
+import { LocateFixed, Plus, Search } from "lucide-react";
 
 // Calm light basemap from OpenFreeMap (no API key). Dark handled by a CSS
 // filter fallback until a dedicated dark style is wired in Phase 5.
@@ -175,7 +176,7 @@ export function MapView({
         </div>
       </div>
 
-      {/* Locate me */}
+      {/* Locate me + add a place */}
       <button
         onClick={locateMe}
         aria-label="Locate me"
@@ -183,6 +184,13 @@ export function MapView({
       >
         <LocateFixed className="h-5 w-5" />
       </button>
+      <Link
+        href="/submit"
+        aria-label="Add a place"
+        className="absolute bottom-40 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground shadow-md"
+      >
+        <Plus className="h-5 w-5" />
+      </Link>
 
       <PlaceSheet place={selected} onClose={() => setSelected(null)} />
     </div>

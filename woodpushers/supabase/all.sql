@@ -688,3 +688,105 @@ $$;
 grant execute on function my_conversations() to authenticated;
 grant execute on function mark_read(uuid) to authenticated;
 
+-- ===== supabase/migrations/0007_submissions.sql =====
+-- Submission and city-page support. Idempotent.
+
+-- Nearest approved places to a point, for dedupe context in assessment.
+create or replace function nearest_places(
+  p_lng double precision, p_lat double precision, p_limit int default 5
+)
+returns table (
+  id uuid, name text, kind text, address text,
+  lng double precision, lat double precision, distance_m double precision
+)
+language sql stable as $$
+  select p.id, p.name, p.kind, p.address,
+         st_x(p.location::geometry), st_y(p.location::geometry),
+         st_distance(p.location, st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography)
+  from places p
+  where p.status = 'approved'
+  order by p.location <-> st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
+  limit p_limit;
+$$;
+
+-- Find the city whose centroid is closest to a point (to attach a place).
+create or replace function nearest_city_id(
+  p_lng double precision, p_lat double precision
+)
+returns bigint
+language sql stable as $$
+  select c.id from cities c
+  order by c.location <-> st_setsrid(st_makepoint(p_lng, p_lat), 4326)::geography
+  limit 1;
+$$;
+
+-- City page stats: count of visible, recently-active players in the city.
+create or replace function city_active_players(city_slug text)
+returns int
+language sql stable security definer set search_path = public as $$
+  select count(*)::int
+  from profiles p
+  join cities c on c.id = p.home_city_id
+  where c.slug = city_slug
+    and p.visible = true
+    and p.last_seen_at >= now() - interval '30 days';
+$$;
+
+grant execute on function nearest_places(double precision, double precision, int) to authenticated, service_role;
+grant execute on function nearest_city_id(double precision, double precision) to service_role;
+grant execute on function city_active_players(text) to anon, authenticated;
+
+-- ===== supabase/migrations/0008_places_pages.sql =====
+-- Place and city detail support. Idempotent.
+
+-- A lightweight "I play here" signal for later ranking.
+create table if not exists place_signals (
+  place_id uuid references places(id) on delete cascade,
+  profile_id uuid references profiles(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (place_id, profile_id)
+);
+alter table place_signals enable row level security;
+
+drop policy if exists place_signals_own on place_signals;
+create policy place_signals_own on place_signals
+  for all using (profile_id = auth.uid()) with check (profile_id = auth.uid());
+
+-- Public place detail with coordinates (approved only).
+create or replace function place_detail(p_id uuid)
+returns table (
+  id uuid, name text, kind text, description text, address text,
+  website text, opening_notes text, source text, source_url text,
+  lng double precision, lat double precision,
+  city_slug text, city_name text, signals int
+)
+language sql stable as $$
+  select p.id, p.name, p.kind, p.description, p.address, p.website,
+         p.opening_notes, p.source, p.source_url,
+         st_x(p.location::geometry), st_y(p.location::geometry),
+         c.slug, c.name,
+         (select count(*)::int from place_signals s where s.place_id = p.id)
+  from places p
+  left join cities c on c.id = p.city_id
+  where p.id = p_id and p.status = 'approved';
+$$;
+
+-- City centroid and metadata for the city page.
+create or replace function city_detail(p_slug text)
+returns table (
+  id bigint, name text, country_code text, slug text,
+  lng double precision, lat double precision,
+  whatsapp_invite_url text
+)
+language sql stable as $$
+  select c.id, c.name, c.country_code, c.slug,
+         st_x(c.location::geometry), st_y(c.location::geometry),
+         cc.whatsapp_invite_url
+  from cities c
+  left join city_chats cc on cc.city_id = c.id
+  where c.slug = p_slug;
+$$;
+
+grant execute on function place_detail(uuid) to anon, authenticated;
+grant execute on function city_detail(text) to anon, authenticated;
+
