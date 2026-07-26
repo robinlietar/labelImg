@@ -33,7 +33,7 @@ export async function completeOnboarding(
   const visible = formData.get("visible") === "on";
 
   if (!HANDLE_RE.test(handle))
-    return { error: "Handle: 3 to 20 letters, numbers, or underscores." };
+    return { error: "Username: 3 to 20 lowercase letters, numbers, or underscores." };
   if (!displayName) return { error: "Add a display name." };
   if (!homeCityId) return { error: "Pick your home city." };
 
@@ -46,7 +46,7 @@ export async function completeOnboarding(
     .eq("handle", handle)
     .neq("id", user.id)
     .maybeSingle();
-  if (taken) return { error: "That handle is taken." };
+  if (taken) return { error: "That username is taken." };
 
   // Runs as the signed-in user: create_profile derives the row id from
   // auth.uid() and is not callable against anyone else.

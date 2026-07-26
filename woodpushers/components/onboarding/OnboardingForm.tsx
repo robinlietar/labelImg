@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { completeOnboarding, type OnboardingState } from "@/app/onboarding/actions";
-import { CitySearch } from "@/components/CitySearch";
+import { HomeCityPicker } from "@/components/onboarding/HomeCityPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,7 @@ export function OnboardingForm() {
   return (
     <form action={action} className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="handle">Handle</Label>
+        <Label htmlFor="handle">Username</Label>
         <Input
           id="handle"
           name="handle"
@@ -51,7 +51,7 @@ export function OnboardingForm() {
           required
         />
         <p className="text-xs text-muted-foreground">
-          Lowercase letters, numbers, underscores. This is your public @name.
+          Your public username: lowercase letters, numbers, underscores.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function OnboardingForm() {
 
       <div className="flex flex-col gap-2">
         <Label>Home city</Label>
-        <CitySearch name="home_city_id" />
+        <HomeCityPicker />
       </div>
 
       <div className="flex flex-col gap-2">

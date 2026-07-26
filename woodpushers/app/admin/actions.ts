@@ -13,9 +13,22 @@ async function assertAdmin(): Promise<boolean> {
 
 export type AdminActionResult = { ok: boolean; error?: string };
 
-/** Publish a pending submission: create the place, mark the submission approved. */
+export type SubmissionEdits = {
+  name?: string;
+  kind?: string;
+  address?: string;
+  description?: string;
+  website?: string;
+};
+
+/**
+ * Publish a pending submission: create the place, mark the submission
+ * approved. `edits` are the admin's corrections (possibly Claude's suggested
+ * version) and override the submitted payload field by field.
+ */
 export async function approveSubmission(
   submissionId: string,
+  edits?: SubmissionEdits,
 ): Promise<AdminActionResult> {
   if (!(await assertAdmin())) return { ok: false, error: "not admin" };
   const svc = createServiceClient();
@@ -26,11 +39,17 @@ export async function approveSubmission(
     .maybeSingle();
   if (!sub) return { ok: false, error: "submission not found" };
 
-  const p = sub.payload as Record<string, unknown>;
+  const p = { ...(sub.payload as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(edits ?? {})) {
+    if (typeof v === "string" && v.trim()) p[k === "description" ? "notes" : k] = v.trim();
+  }
+
   let lng = p.lng as number | null;
   let lat = p.lat as number | null;
-  if ((lat == null || lng == null) && typeof p.address === "string") {
-    // The submit-time geocode failed; retry once now.
+  const addressEdited =
+    edits?.address && edits.address !== (sub.payload as Record<string, unknown>).address;
+  if ((lat == null || lng == null || addressEdited) && typeof p.address === "string") {
+    // Re-geocode when coordinates are missing or the admin fixed the address.
     const { geocode } = await import("@/lib/nominatim");
     const g = await geocode(p.address);
     if (g) {

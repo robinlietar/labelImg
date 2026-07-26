@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { approveSubmission, rejectSubmission, mergeSubmission } from "@/app/admin/actions";
+import {
+  approveSubmission,
+  rejectSubmission,
+  mergeSubmission,
+} from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PLACE_KINDS, KIND_LABEL, type PlaceKind } from "@/lib/places";
 import type { Assessment } from "@/lib/assess";
+import { Sparkles } from "lucide-react";
 
 export type Submission = {
   id: string;
@@ -12,63 +19,126 @@ export type Submission = {
   created_at: string;
 };
 
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+
+/**
+ * Review card: the submitter's original next to Claude's cleaned-up
+ * suggestion, editable fields, and approve/merge/reject. Approve publishes
+ * whatever is in the fields.
+ */
 export function SubmissionCard({ sub }: { sub: Submission }) {
   const [pending, start] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
   const p = sub.payload;
   const a = sub.claude_assessment;
 
+  const [name, setName] = useState(str(p.name));
+  const [kind, setKind] = useState(str(p.kind) || "other");
+  const [address, setAddress] = useState(str(p.address));
+  const [website, setWebsite] = useState(str(p.website));
+  const [description, setDescription] = useState(
+    str(p.notes) || a?.suggested_copy || "",
+  );
+
+  function applySuggestion() {
+    const s = a?.suggested;
+    if (!s) return;
+    if (s.name) setName(s.name);
+    if (s.kind && (PLACE_KINDS as readonly string[]).includes(s.kind)) setKind(s.kind);
+    if (s.address) setAddress(s.address);
+    if (s.website) setWebsite(s.website);
+    if (s.description) setDescription(s.description);
+  }
+
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium">{String(p.name ?? "Untitled")}</p>
-          <p className="text-xs text-muted-foreground">
-            {String(p.kind ?? "")} · {String(p.address ?? "no address")}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Submitted {new Date(sub.created_at).toLocaleString()}
+        </p>
         {a && (
-          <span
-            className="rounded-full bg-secondary px-2 py-0.5 text-xs"
-            title="quality score"
-          >
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs" title="quality score">
             {(a.quality_score * 100).toFixed(0)}%
           </span>
         )}
       </div>
 
-      {p.website ? (
-        <a href={String(p.website)} className="mt-1 block text-xs text-primary underline">
-          {String(p.website)}
-        </a>
-      ) : null}
-      {p.when_notes ? (
-        <p className="mt-1 text-xs text-muted-foreground">When: {String(p.when_notes)}</p>
-      ) : null}
+      {/* Original vs suggestion, side by side on wide, stacked on mobile */}
+      <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
+        <div className="rounded-lg bg-secondary/40 p-2">
+          <p className="font-semibold text-muted-foreground">User submitted</p>
+          <p className="mt-1">{str(p.name) || "(no name)"} · {str(p.kind)}</p>
+          <p className="text-muted-foreground">{str(p.address) || "no address"}</p>
+          {str(p.when_notes) && <p className="text-muted-foreground">When: {str(p.when_notes)}</p>}
+          {str(p.notes) && <p className="italic">{str(p.notes)}</p>}
+        </div>
+        <div className="rounded-lg bg-accent/60 p-2">
+          <p className="font-semibold text-accent-foreground">Claude suggests</p>
+          {a?.suggested ? (
+            <>
+              <p className="mt-1">
+                {a.suggested.name ?? str(p.name)} · {a.suggested.kind ?? str(p.kind)}
+              </p>
+              <p className="text-muted-foreground">{a.suggested.address ?? "no address"}</p>
+              {a.suggested.description && <p className="italic">{a.suggested.description}</p>}
+            </>
+          ) : (
+            <p className="mt-1 text-muted-foreground">No suggestion returned.</p>
+          )}
+        </div>
+      </div>
 
       {a && (
-        <div className="mt-3 rounded-lg bg-secondary/50 p-3 text-xs">
-          <p>
-            real: {a.plausible_real_place ? "yes" : "no"} · chess:{" "}
-            {a.chess_relevant ? "yes" : "no"} · duplicate:{" "}
-            {a.likely_duplicate_of ?? "no"}
-          </p>
-          {a.issues.length > 0 && <p className="mt-1">issues: {a.issues.join("; ")}</p>}
-          {a.suggested_copy && <p className="mt-1 italic">“{a.suggested_copy}”</p>}
+        <p className="mt-2 text-xs text-muted-foreground">
+          real: {a.plausible_real_place ? "yes" : "no"} · chess:{" "}
+          {a.chess_relevant ? "yes" : "no"} · duplicate: {a.likely_duplicate_of ?? "no"}
+          {a.issues.length > 0 && <> · issues: {a.issues.join("; ")}</>}
+        </p>
+      )}
+
+      {/* Editable final version */}
+      <div className="mt-3 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+            className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
+          >
+            {PLACE_KINDS.map((k: PlaceKind) => (
+              <option key={k} value={k}>{KIND_LABEL[k]}</option>
+            ))}
+          </select>
         </div>
-      )}
+        <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" />
+        <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website" />
+        <Input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="One-line description"
+        />
+      </div>
 
-      {actionError && (
-        <p className="mt-2 text-xs text-destructive">{actionError}</p>
-      )}
+      {actionError && <p className="mt-2 text-xs text-destructive">{actionError}</p>}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
+        {a?.suggested && (
+          <Button size="sm" variant="secondary" onClick={applySuggestion}>
+            <Sparkles className="h-3.5 w-3.5" /> Use suggestion
+          </Button>
+        )}
         <Button
           size="sm"
           disabled={pending}
           onClick={() =>
             start(async () => {
-              const res = await approveSubmission(sub.id);
+              const res = await approveSubmission(sub.id, {
+                name,
+                kind,
+                address,
+                website,
+                description,
+              });
               setActionError(res.ok ? null : (res.error ?? "failed"));
             })
           }

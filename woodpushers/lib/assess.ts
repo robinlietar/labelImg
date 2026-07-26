@@ -19,6 +19,14 @@ export type NearbyPlace = {
   distance_m: number;
 };
 
+export type SuggestedPlace = {
+  name: string | null;
+  kind: string | null;
+  address: string | null;
+  description: string | null;
+  website: string | null;
+};
+
 export type Assessment = {
   plausible_real_place: boolean;
   chess_relevant: boolean;
@@ -26,6 +34,8 @@ export type Assessment = {
   quality_score: number; // 0..1
   issues: string[];
   suggested_copy: string | null;
+  /** Claude's cleaned-up version of the listing, shown next to the original. */
+  suggested: SuggestedPlace | null;
 };
 
 /**
@@ -42,11 +52,20 @@ export async function assessSubmission(
     "actually relevant to playing OTB chess, and whether it duplicates one of",
     "the nearby existing places provided.",
     "",
+    "Also produce a cleaned-up version of the listing: proper capitalization,",
+    "a normalized full street address (street, suburb/city; complete or",
+    "correct it when you are confident, else keep the user's), the best-fit",
+    "kind, a crisp one-line description, and the website if given. Never",
+    "invent facts you cannot infer from the submission itself.",
+    "",
     "Return ONLY JSON, no prose:",
     `{ "plausible_real_place": boolean, "chess_relevant": boolean,`,
     ` "likely_duplicate_of": string|null (the id of a nearby place, or null),`,
     ` "quality_score": number 0..1, "issues": string[],`,
-    ` "suggested_copy": string|null (a one-line cleaned-up description) }`,
+    ` "suggested_copy": string|null (one-line cleaned-up description),`,
+    ` "suggested": { "name": string|null, "kind": string|null,`,
+    `   "address": string|null, "description": string|null,`,
+    `   "website": string|null } }`,
   ].join("\n");
 
   const user = JSON.stringify({ submission: payload, nearby_existing: nearest });
@@ -60,6 +79,7 @@ export async function assessSubmission(
     });
     const parsed = parseJsonLoose<Assessment>(textOf(message));
     if (!parsed) return null;
+    const sug = parsed.suggested;
     return {
       plausible_real_place: !!parsed.plausible_real_place,
       chess_relevant: !!parsed.chess_relevant,
@@ -70,6 +90,15 @@ export async function assessSubmission(
           : 0,
       issues: Array.isArray(parsed.issues) ? parsed.issues.map(String) : [],
       suggested_copy: parsed.suggested_copy ?? null,
+      suggested: sug
+        ? {
+            name: sug.name ?? null,
+            kind: sug.kind ?? null,
+            address: sug.address ?? null,
+            description: sug.description ?? null,
+            website: sug.website ?? null,
+          }
+        : null,
     };
   } catch {
     return null;
