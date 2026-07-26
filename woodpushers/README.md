@@ -1,4 +1,4 @@
-# Kibitz
+# WoodPushers
 
 Over-the-board chess, anywhere in the world. A mobile-first web app with three pillars:
 
@@ -31,7 +31,7 @@ Open http://localhost:3000.
 
 ## Deploy (Vercel)
 
-1. Import the repo in Vercel, set the project **Root Directory** to `kibitz/`.
+1. Import the repo in Vercel, set the project **Root Directory** to `woodpushers/`.
 2. Add every variable from `.env.example` in Project Settings > Environment Variables.
 3. Deploy. The `vercel.json` cron calls `POST /api/cron/scrape` daily at 03:00 UTC.
 

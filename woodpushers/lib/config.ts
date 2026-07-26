@@ -1,10 +1,10 @@
 /**
  * Central product config. Rename the app here (name, tagline, domain) and it
  * propagates to the layout metadata, PWA manifest, and UI chrome. This is the
- * single place to change if we move off the working name "Kibitz".
+ * single place to change if we ever rename the app.
  */
 export const APP = {
-  name: "Kibitz",
+  name: "WoodPushers",
   tagline: "Over-the-board chess, anywhere",
   // Launch cities: the owner runs real communities here.
   launchCities: ["sydney", "paris"] as const,
