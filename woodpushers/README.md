@@ -26,8 +26,25 @@ Open http://localhost:3000.
 
 - `pnpm dev` / `pnpm build` / `pnpm start`: Next.js.
 - `pnpm typecheck`: strict TypeScript, no emit.
-- `pnpm seed:cities`: load the world cities seed (population >= 100k).
+- `pnpm seed:cities`: load the world cities seed (population >= 100k) from a CSV.
+- `pnpm tsx scripts/seed-launch-cities.ts`: seed just Sydney and Paris.
+- `pnpm tsx scripts/check-db.ts`: verify the DB connection and schema.
 - `pnpm scrape --city sydney --city paris`: run the discovery pipeline for named cities.
+
+## First run against Supabase
+
+The discovery pipeline needs outbound access to `*.supabase.co`,
+`overpass-api.de`, and `nominatim.openstreetmap.org`. Run it from a machine
+with open network access:
+
+```bash
+pnpm install
+cp .env.example .env.local        # fill in the real keys
+# Apply the schema: paste supabase/all.sql into Supabase SQL Editor and Run.
+pnpm tsx scripts/check-db.ts       # expect "ok" for every table and rpc
+pnpm tsx scripts/seed-launch-cities.ts
+pnpm scrape --city sydney --city paris
+```
 
 ## Deploy (Vercel)
 
