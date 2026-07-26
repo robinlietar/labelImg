@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${APP.name} — ${APP.tagline}`,
-    template: `%s — ${APP.name}`,
+    default: `${APP.name}: ${APP.tagline}`,
+    template: `%s | ${APP.name}`,
   },
   description: APP.description,
   applicationName: APP.name,

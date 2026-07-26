@@ -12,7 +12,10 @@ export function AvailabilityToggle({ active }: { active: boolean }) {
   function toggle() {
     const next = !on;
     setOn(next);
-    start(() => setOpenToday(next));
+    // Local end-of-day, computed on the device so timezones are respected.
+    const midnight = new Date();
+    midnight.setHours(23, 59, 0, 0);
+    start(() => setOpenToday(next, midnight.toISOString()));
   }
 
   return (

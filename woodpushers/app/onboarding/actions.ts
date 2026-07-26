@@ -48,8 +48,9 @@ export async function completeOnboarding(
     .maybeSingle();
   if (taken) return { error: "That handle is taken." };
 
-  const { error } = await svc.rpc("create_profile", {
-    p_id: user.id,
+  // Runs as the signed-in user: create_profile derives the row id from
+  // auth.uid() and is not callable against anyone else.
+  const { error } = await supabase.rpc("create_profile", {
     p_handle: handle,
     p_display_name: displayName,
     p_home_city_id: homeCityId,
@@ -60,5 +61,5 @@ export async function completeOnboarding(
   });
   if (error) return { error: error.message };
 
-  redirect("/me");
+  redirect("/onboarding/link");
 }

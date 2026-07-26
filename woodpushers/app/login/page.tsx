@@ -7,12 +7,13 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6">
       <div className="flex flex-col items-center gap-2 text-center">
-        <span
-          aria-hidden
-          className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-2xl text-primary-foreground"
-        >
-          ♞
-        </span>
+        {/* The real app icon, so login matches the home-screen identity. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icon-192.png"
+          alt=""
+          className="h-16 w-16 rounded-2xl shadow-md"
+        />
         <h1 className="text-2xl font-semibold">{APP.name}</h1>
         <p className="text-sm text-muted-foreground">{APP.tagline}.</p>
       </div>

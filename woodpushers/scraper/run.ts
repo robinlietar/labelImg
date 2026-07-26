@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { geocode } from "@/lib/nominatim";
+import { safeHttpUrl } from "@/lib/utils";
 import { fetchOsm } from "./osm";
 import { fetchResearch } from "./research";
 import { dedupeWithinBatch, isDuplicate, type ExistingPlace } from "./dedupe";
@@ -99,10 +100,10 @@ async function processCity(
       p_city_id: city.id,
       p_lng: c.lng,
       p_lat: c.lat,
-      p_website: c.website ?? null,
+      p_website: safeHttpUrl(c.website),
       p_opening_notes: c.opening_notes ?? null,
       p_source: c.source,
-      p_source_url: c.source_url ?? null,
+      p_source_url: safeHttpUrl(c.source_url),
       p_confidence: c.confidence,
       p_status: statusFor(c),
     });

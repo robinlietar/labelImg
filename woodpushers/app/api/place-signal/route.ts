@@ -9,11 +9,17 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
-  const { placeId } = (await request.json()) as { placeId?: string };
+  let placeId: string | undefined;
+  try {
+    ({ placeId } = (await request.json()) as { placeId?: string });
+  } catch {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
   if (!placeId) return NextResponse.json({ ok: false }, { status: 400 });
 
-  await supabase
+  const { error } = await supabase
     .from("place_signals")
     .upsert({ place_id: placeId, profile_id: user.id });
+  if (error) return NextResponse.json({ ok: false }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

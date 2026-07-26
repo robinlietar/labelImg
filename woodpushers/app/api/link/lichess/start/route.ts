@@ -13,7 +13,13 @@ export async function GET(request: Request) {
   const redirectUri = new URL("/api/link/lichess/callback", request.url).toString();
 
   const jar = await cookies();
-  const opts = { httpOnly: true, secure: true, sameSite: "lax" as const, maxAge: 600, path: "/" };
+  const opts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge: 600,
+    path: "/",
+  };
   jar.set("lichess_verifier", verifier, opts);
   jar.set("lichess_state", state, opts);
 

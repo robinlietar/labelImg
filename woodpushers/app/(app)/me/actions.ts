@@ -5,15 +5,28 @@ import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** "Up for a game today": set open_today_until to tonight, or clear it. */
-export async function setOpenToday(on: boolean): Promise<void> {
+/**
+ * "Up for a game today": set open_today_until to the user's local midnight
+ * (computed on the client, passed in as ISO), or clear it. A server-computed
+ * "tonight" would be UTC midnight, hours wrong for Sydney.
+ */
+export async function setOpenToday(
+  on: boolean,
+  untilIso?: string,
+): Promise<void> {
   const user = await getUser();
   if (!user) return;
   let until: string | null = null;
   if (on) {
-    const d = new Date();
-    d.setHours(23, 59, 0, 0);
-    until = d.toISOString();
+    const parsed = untilIso ? new Date(untilIso) : null;
+    const valid =
+      parsed &&
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getTime() > Date.now() &&
+      parsed.getTime() < Date.now() + 36 * 3600 * 1000;
+    until = valid
+      ? parsed.toISOString()
+      : new Date(Date.now() + 12 * 3600 * 1000).toISOString();
   }
   const svc = createServiceClient();
   await svc.from("profiles").update({ open_today_until: until }).eq("id", user.id);

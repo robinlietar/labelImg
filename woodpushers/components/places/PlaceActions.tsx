@@ -9,28 +9,44 @@ export function PlaceActions({ placeId }: { placeId: string }) {
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  function outcome(res: Response, okMsg: string): string {
+    if (res.ok) return okMsg;
+    if (res.status === 401) return "Sign in first.";
+    return "Something went wrong, try again.";
+  }
+
   async function iPlayHere() {
     setBusy(true);
-    const res = await fetch("/api/place-signal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ placeId }),
-    });
-    setBusy(false);
-    setNote(res.ok ? "Noted, thanks. This helps us rank places." : "Sign in first.");
+    try {
+      const res = await fetch("/api/place-signal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId }),
+      });
+      setNote(outcome(res, "Noted, thanks. This helps us rank places."));
+    } catch {
+      setNote("Network problem, try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function report() {
     const reason = window.prompt("What is wrong with this listing?") ?? "";
     if (!reason) return;
     setBusy(true);
-    const res = await fetch("/api/place-report", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ placeId, reason }),
-    });
-    setBusy(false);
-    setNote(res.ok ? "Thanks, we will take a look." : "Sign in first.");
+    try {
+      const res = await fetch("/api/place-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId, reason: reason.slice(0, 1000) }),
+      });
+      setNote(outcome(res, "Thanks, we will take a look."));
+    } catch {
+      setNote("Network problem, try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

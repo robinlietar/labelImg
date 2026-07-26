@@ -19,29 +19,39 @@ export function ChesscomLink({ initialUsername }: { initialUsername: string | nu
   async function start() {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/link/chesscom/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) return setError(json.error ?? "Could not start");
-    setCode(json.code);
-    setStep("code");
+    try {
+      const res = await fetch("/api/link/chesscom/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(json.error ?? "Could not start");
+      setCode(json.code);
+      setStep("code");
+    } catch {
+      setError("Network problem, try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verify() {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/link/chesscom/verify", { method: "POST" });
-    const json = await res.json();
-    setBusy(false);
-    if (json.verified) {
-      setStep("done");
-      router.refresh();
-    } else {
-      setError(json.error ?? "Not verified yet");
+    try {
+      const res = await fetch("/api/link/chesscom/verify", { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (json.verified) {
+        setStep("done");
+        router.refresh();
+      } else {
+        setError(json.error ?? "Not verified yet");
+      }
+    } catch {
+      setError("Network problem, try again.");
+    } finally {
+      setBusy(false);
     }
   }
 

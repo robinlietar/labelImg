@@ -10,13 +10,18 @@ export function CityChatRequest({ cityId }: { cityId: number }) {
 
   async function request() {
     setBusy(true);
-    const res = await fetch("/api/city-chat-request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cityId }),
-    });
-    setBusy(false);
-    if (res.ok) setDone(true);
+    try {
+      const res = await fetch("/api/city-chat-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cityId }),
+      });
+      if (res.ok) setDone(true);
+    } catch {
+      /* leave the button usable for a retry */
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (done)

@@ -15,6 +15,7 @@ export type PlayerRow = {
   chesscom_verified: boolean;
   chesscom_title: string | null;
   chesscom_meta: Record<string, unknown> | null;
+  self_rating_band: string | null;
   preferred_time_controls: string[] | null;
   availability_status: "local" | "visiting";
   visiting_until: string | null;
@@ -34,6 +35,24 @@ export function availabilityLabel(p: PlayerRow): string {
     return `Visiting until ${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
   }
   return "Lives here";
+}
+
+/** Label for a self-declared strength band (players with no linked account). */
+export function selfBandLabel(band: string | null): string | null {
+  switch (band) {
+    case "under_1000":
+      return "New / under 1000";
+    case "1000_1400":
+      return "1000 to 1400";
+    case "1400_1800":
+      return "1400 to 1800";
+    case "1800_2200":
+      return "1800 to 2200";
+    case "over_2200":
+      return "2200+";
+    default:
+      return null;
+  }
 }
 
 /** Activity: green dot under 48h, else "active N days ago". */

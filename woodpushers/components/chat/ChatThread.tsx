@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { blockUser, reportUser } from "@/app/(app)/p/actions";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Ban, Flag, MoreHorizontal, Send } from "lucide-react";
 
 export type ChatMessage = {
   id: string;
@@ -32,6 +33,8 @@ export function ChatThread({
   const [text, setText] = useState(draft);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [, startAction] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
   const supabase = useRef(createClient());
 
@@ -82,7 +85,12 @@ export function ChatThread({
       .single();
     setSending(false);
     if (error) {
-      setError("Message could not be sent.");
+      // A WITH CHECK failure here is almost always a block in either direction.
+      setError(
+        /policy|check/i.test(error.message)
+          ? "Message not delivered. One of you has blocked the other."
+          : "Message could not be sent, try again.",
+      );
       return;
     }
     setText("");
@@ -94,16 +102,55 @@ export function ChatThread({
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-md flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+      <header className="relative flex items-center gap-3 border-b border-border px-4 py-3">
         <Link href="/chat" aria-label="Back">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {otherHandle ? (
-          <Link href={`/p/${otherHandle}`} className="font-medium">
+          <Link href={`/p/${otherHandle}`} className="flex-1 font-medium">
             {otherName}
           </Link>
         ) : (
-          <span className="font-medium">{otherName}</span>
+          <span className="flex-1 font-medium">{otherName}</span>
+        )}
+        {otherHandle && (
+          <button
+            aria-label="Conversation options"
+            onClick={() => setMenu((m) => !m)}
+            className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        )}
+        {menu && otherHandle && (
+          <div className="absolute right-3 top-12 z-30 w-52 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+            <button
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
+              onClick={() => {
+                setMenu(false);
+                startAction(async () => {
+                  await blockUser(otherHandle);
+                  setError("Blocked. They can no longer message you.");
+                });
+              }}
+            >
+              <Ban className="h-4 w-4" /> Block
+            </button>
+            <button
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-secondary"
+              onClick={() => {
+                setMenu(false);
+                const reason = window.prompt("What is the problem?") ?? "";
+                if (reason)
+                  startAction(async () => {
+                    await reportUser(otherHandle, reason);
+                    setError("Reported. Thank you.");
+                  });
+              }}
+            >
+              <Flag className="h-4 w-4" /> Report
+            </button>
+          </div>
         )}
       </header>
 

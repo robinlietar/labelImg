@@ -5,9 +5,12 @@ import { runScrape } from "@/scraper/run";
 // exit cleanly. The daily schedule cycles the city list forever.
 export const maxDuration = 300; // seconds (raise/lower to your Vercel plan)
 
-export async function POST(request: Request) {
+// Vercel cron fires GET; the acceptance-checklist curl uses POST. Same handler.
+async function handle(request: Request) {
+  const secret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail closed: an unset secret must never mean an open endpoint.
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
@@ -22,3 +25,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export { handle as GET, handle as POST };

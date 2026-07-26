@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { refreshRatingsByUserId } from "@/lib/refresh-ratings";
 
 /**
  * OAuth and magic-link callback. Exchanges the code for a session, then sends
@@ -24,6 +25,10 @@ export async function GET(request: Request) {
           .select("id")
           .eq("id", user.id)
           .maybeSingle();
+        if (profile) {
+          // Spec: ratings refresh on login. Quick and failure-tolerant.
+          await refreshRatingsByUserId(user.id).catch(() => {});
+        }
         const dest = profile ? next : "/onboarding";
         return NextResponse.redirect(`${origin}${dest}`);
       }

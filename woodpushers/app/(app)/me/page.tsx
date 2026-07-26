@@ -10,11 +10,16 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Me" };
 
-export default async function MePage() {
+export default async function MePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ link?: string }>;
+}) {
   const user = await getUser();
   if (!user) redirect("/login");
   const profile = await getProfile();
   if (!profile) redirect("/onboarding");
+  const { link } = await searchParams;
 
   const openToday =
     !!profile.open_today_until &&
@@ -33,6 +38,16 @@ export default async function MePage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
+      {link === "lichess_ok" && (
+        <p className="mb-4 rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground">
+          Lichess linked and verified.
+        </p>
+      )}
+      {link === "lichess_error" && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Lichess linking failed, try again.
+        </p>
+      )}
       <header className="flex items-center gap-4">
         <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary text-2xl">
           ♟

@@ -1,22 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import Map, {
-  Marker,
-  NavigationControl,
-  type MapRef,
-} from "react-map-gl/maplibre";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Map, { Marker, type MapRef } from "react-map-gl/maplibre";
 import Supercluster from "supercluster";
+import Link from "next/link";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { PlaceKind, PlacePoint } from "@/lib/places";
 import { PlaceSheet } from "@/components/map/PlaceSheet";
 import { KindFilter } from "@/components/map/KindFilter";
-import Link from "next/link";
-import { LocateFixed, Plus, Search } from "lucide-react";
+import { CitySearchBox } from "@/components/map/CitySearchBox";
+import { ClusterBubble, PlacePin } from "@/components/map/pins";
+import { useColorScheme } from "@/lib/use-color-scheme";
+import { LocateFixed, Plus } from "lucide-react";
 
-// Calm light basemap from OpenFreeMap (no API key). Dark handled by a CSS
-// filter fallback until a dedicated dark style is wired in Phase 5.
-const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+// OpenFreeMap styles (no key). Liberty is the rich light look; dark for night.
+// If the dark style ever fails to load, we fall back to liberty.
+const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/liberty";
+const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 
 type LeafProps = { place: PlacePoint };
 type Feature =
@@ -29,6 +29,7 @@ export function MapView({
   initial: { longitude: number; latitude: number; zoom: number };
 }) {
   const mapRef = useRef<MapRef>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [places, setPlaces] = useState<PlacePoint[]>([]);
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(
     null,
@@ -36,9 +37,16 @@ export function MapView({
   const [zoom, setZoom] = useState(initial.zoom);
   const [selected, setSelected] = useState<PlacePoint | null>(null);
   const [kinds, setKinds] = useState<PlaceKind[]>([]);
+  const scheme = useColorScheme();
+  const [darkStyleBroken, setDarkStyleBroken] = useState(false);
+  const styleUrl =
+    scheme === "dark" && !darkStyleBroken ? STYLE_DARK : STYLE_LIGHT;
 
   const fetchPlaces = useCallback(
     async (b: [number, number, number, number], activeKinds: PlaceKind[]) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const params = new URLSearchParams({
         west: String(b[0]),
         south: String(b[1]),
@@ -47,11 +55,14 @@ export function MapView({
       });
       if (activeKinds.length) params.set("kinds", activeKinds.join(","));
       try {
-        const res = await fetch(`/api/places?${params}`);
-        const json = await res.json();
+        const res = await fetch(`/api/places?${params}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return; // keep previous pins on server hiccups
+        const json = (await res.json()) as { places?: PlacePoint[] };
         setPlaces(json.places ?? []);
       } catch {
-        setPlaces([]);
+        // aborted or offline: keep previous pins
       }
     },
     [],
@@ -72,9 +83,21 @@ export function MapView({
     void fetchPlaces(bbox, kinds);
   }, [fetchPlaces, kinds]);
 
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // If the basemap style fails or is slow (flaky mobile network), the map's
+  // load event never fires. Fetch pins from the initial viewport anyway:
+  // markers are DOM overlays and render fine over a plain background.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!bounds) refresh();
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [bounds, refresh]);
+
   const index = useMemo(() => {
     const sc = new Supercluster<LeafProps, Record<string, never>>({
-      radius: 60,
+      radius: 64,
       maxZoom: 16,
     });
     sc.load(
@@ -111,27 +134,35 @@ export function MapView({
   );
 
   return (
-    <div className="relative h-dvh w-full">
+    <div className="relative h-dvh w-full bg-secondary">
       <Map
         ref={mapRef}
-        mapStyle={STYLE_URL}
+        mapStyle={styleUrl}
         initialViewState={initial}
         onLoad={refresh}
         onMoveEnd={refresh}
+        onError={(e) => {
+          // Dark style unavailable (offline dev, CDN change): drop to liberty.
+          if (styleUrl === STYLE_DARK && /style|source|fetch/i.test(String(e?.error))) {
+            setDarkStyleBroken(true);
+          }
+        }}
         attributionControl={{ compact: true }}
+        dragRotate={false}
         reuseMaps
       >
-        <NavigationControl position="top-right" showCompass={false} />
-
-        {clusters.map((c, i) => {
+        {clusters.map((c) => {
           const [lng, lat] = c.geometry.coordinates;
           const props = c.properties;
           if ("cluster" in props && props.cluster) {
-            const size = 30 + Math.min(props.point_count, 40);
             return (
-              <Marker key={`c-${props.cluster_id}`} longitude={lng} latitude={lat}>
+              <Marker
+                key={`c-${props.cluster_id}`}
+                longitude={lng}
+                latitude={lat}
+              >
                 <button
-                  aria-label={`${props.point_count} places`}
+                  aria-label={`${props.point_count} places, tap to zoom`}
                   onClick={() => {
                     const z = Math.min(
                       index.getClusterExpansionZoom(props.cluster_id),
@@ -139,36 +170,38 @@ export function MapView({
                     );
                     mapRef.current?.flyTo({ center: [lng, lat], zoom: z });
                   }}
-                  className="grid place-items-center rounded-full bg-primary font-medium text-primary-foreground shadow-md"
-                  style={{ width: size, height: size }}
                 >
-                  {props.point_count}
+                  <ClusterBubble count={props.point_count} />
                 </button>
               </Marker>
             );
           }
           const place = props.place;
           return (
-            <Marker key={`p-${place.id}-${i}`} longitude={lng} latitude={lat}>
+            <Marker key={place.id} longitude={lng} latitude={lat} anchor="bottom">
               <button
                 aria-label={place.name}
                 onClick={() => setSelected(place)}
-                className="grid h-8 w-8 place-items-center rounded-full border-2 border-background bg-primary text-sm text-primary-foreground shadow"
+                className="-m-1 p-1"
               >
-                ♟
+                <PlacePin
+                  kind={place.kind}
+                  label={place.name}
+                  selected={selected?.id === place.id}
+                />
               </button>
             </Marker>
           );
         })}
       </Map>
 
-      {/* Top controls: search + kind filter */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 shadow-sm backdrop-blur">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            placeholder="Search a city"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+      {/* Top overlay: search + kind filter, clear of the notch. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 px-3 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        <div className="pointer-events-auto">
+          <CitySearchBox
+            onPick={(c) =>
+              mapRef.current?.flyTo({ center: [c.lng, c.lat], zoom: 12 })
+            }
           />
         </div>
         <div className="pointer-events-auto">
@@ -176,21 +209,25 @@ export function MapView({
         </div>
       </div>
 
-      {/* Locate me + add a place */}
-      <button
-        onClick={locateMe}
-        aria-label="Locate me"
-        className="absolute bottom-24 right-3 z-10 grid h-11 w-11 place-items-center rounded-full border border-border bg-card text-foreground shadow-md"
-      >
-        <LocateFixed className="h-5 w-5" />
-      </button>
-      <Link
-        href="/submit"
-        aria-label="Add a place"
-        className="absolute bottom-40 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground shadow-md"
-      >
-        <Plus className="h-5 w-5" />
-      </Link>
+      {/* FABs, hidden while the sheet is open so they never overlap it. */}
+      {!selected && (
+        <>
+          <Link
+            href="/submit"
+            aria-label="Add a place"
+            className="absolute bottom-40 right-3 z-10 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg"
+          >
+            <Plus className="h-5 w-5" />
+          </Link>
+          <button
+            onClick={locateMe}
+            aria-label="Locate me"
+            className="absolute bottom-24 right-3 z-10 grid h-12 w-12 place-items-center rounded-full border border-border bg-card text-foreground shadow-lg"
+          >
+            <LocateFixed className="h-5 w-5" />
+          </button>
+        </>
+      )}
 
       <PlaceSheet place={selected} onClose={() => setSelected(null)} />
     </div>

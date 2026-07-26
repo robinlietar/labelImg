@@ -13,7 +13,17 @@ export async function POST(request: Request) {
   const raw = jar.get("chesscom_link")?.value;
   if (!raw) return NextResponse.json({ verified: false, error: "start over" }, { status: 400 });
 
-  const { username, code } = JSON.parse(raw) as { username: string; code: string };
+  let username: string, code: string;
+  try {
+    const parsed = JSON.parse(raw) as { username?: unknown; code?: unknown };
+    if (typeof parsed.username !== "string" || typeof parsed.code !== "string")
+      throw new Error("bad shape");
+    username = parsed.username;
+    code = parsed.code;
+  } catch {
+    jar.delete("chesscom_link");
+    return NextResponse.json({ verified: false, error: "start over" }, { status: 400 });
+  }
   const player = await fetchChesscomPlayer(username);
   if (!player.found)
     return NextResponse.json({ verified: false, error: "user not found" }, { status: 404 });

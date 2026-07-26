@@ -6,6 +6,7 @@ import { APP } from "@/lib/config";
 import { SubmissionCard, type Submission } from "@/components/admin/SubmissionCard";
 import { PendingPlaceRow, type PendingPlace } from "@/components/admin/PendingPlaceRow";
 import { CityChatEditor, type CityChatRow } from "@/components/admin/CityChatEditor";
+import { ReportRow, type ReportItem } from "@/components/admin/ReportRow";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -17,30 +18,43 @@ export default async function AdminPage() {
 
   const svc = createServiceClient();
 
-  const [{ data: subs }, { data: places }, { data: runs }, { data: cities }] =
-    await Promise.all([
-      svc
-        .from("place_submissions")
-        .select("id, payload, claude_assessment, created_at")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(50),
-      svc
-        .from("places")
-        .select("id, name, kind, address, source, source_url, confidence")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(100),
-      svc
-        .from("scrape_runs")
-        .select("id, started_at, finished_at, cities, error")
-        .order("started_at", { ascending: false })
-        .limit(10),
-      svc
-        .from("cities")
-        .select("id, name, slug, city_chats(whatsapp_invite_url, notes)")
-        .in("slug", APP.launchCities as unknown as string[]),
-    ]);
+  const [
+    { data: subs },
+    { data: places },
+    { data: runs },
+    { data: cities },
+    { data: reports },
+  ] = await Promise.all([
+    svc
+      .from("place_submissions")
+      .select("id, payload, claude_assessment, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    svc
+      .from("places")
+      .select("id, name, kind, address, source, source_url, confidence")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    svc
+      .from("scrape_runs")
+      .select("id, started_at, finished_at, cities, error")
+      .order("started_at", { ascending: false })
+      .limit(10),
+    svc
+      .from("cities")
+      .select("id, name, slug, intro, city_chats(whatsapp_invite_url, notes)")
+      .in("slug", APP.launchCities as unknown as string[]),
+    svc
+      .from("reports")
+      .select(
+        "id, reason, created_at, reporter:profiles!reports_reporter_fkey(handle), reported:profiles!reports_reported_fkey(handle)",
+      )
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
 
   const submissions = (subs ?? []) as Submission[];
   const pendingPlaces = (places ?? []) as PendingPlace[];
@@ -52,6 +66,18 @@ export default async function AdminPage() {
       slug: c.slug as string,
       whatsapp_invite_url: chat?.whatsapp_invite_url ?? null,
       notes: chat?.notes ?? null,
+      intro: (c.intro as string | null) ?? null,
+    };
+  });
+  const reportRows: ReportItem[] = (reports ?? []).map((r) => {
+    const rep = Array.isArray(r.reporter) ? r.reporter[0] : r.reporter;
+    const red = Array.isArray(r.reported) ? r.reported[0] : r.reported;
+    return {
+      id: r.id as string,
+      reason: (r.reason as string | null) ?? null,
+      created_at: r.created_at as string,
+      reporter_handle: rep?.handle ?? null,
+      reported_handle: red?.handle ?? null,
     };
   });
 
@@ -78,6 +104,18 @@ export default async function AdminPage() {
           <div className="flex flex-col gap-2">
             {pendingPlaces.map((p) => (
               <PendingPlaceRow key={p.id} place={p} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title={`Reports (${reportRows.length})`}>
+        {reportRows.length === 0 ? (
+          <Empty>No open reports.</Empty>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {reportRows.map((r) => (
+              <ReportRow key={r.id} report={r} />
             ))}
           </div>
         )}

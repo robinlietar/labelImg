@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
+import { safeHttpUrl } from "@/lib/utils";
 import { createServiceClient } from "@/lib/supabase/service";
 
 async function assertAdmin(): Promise<boolean> {
@@ -10,24 +11,43 @@ async function assertAdmin(): Promise<boolean> {
   return isAdmin(user?.id);
 }
 
+export type AdminActionResult = { ok: boolean; error?: string };
+
 /** Publish a pending submission: create the place, mark the submission approved. */
-export async function approveSubmission(submissionId: string): Promise<void> {
-  if (!(await assertAdmin())) return;
+export async function approveSubmission(
+  submissionId: string,
+): Promise<AdminActionResult> {
+  if (!(await assertAdmin())) return { ok: false, error: "not admin" };
   const svc = createServiceClient();
   const { data: sub } = await svc
     .from("place_submissions")
     .select("id, payload")
     .eq("id", submissionId)
     .maybeSingle();
-  if (!sub) return;
+  if (!sub) return { ok: false, error: "submission not found" };
 
   const p = sub.payload as Record<string, unknown>;
-  const lng = p.lng as number | null;
-  const lat = p.lat as number | null;
-  if (lat == null || lng == null) return;
+  let lng = p.lng as number | null;
+  let lat = p.lat as number | null;
+  if ((lat == null || lng == null) && typeof p.address === "string") {
+    // The submit-time geocode failed; retry once now.
+    const { geocode } = await import("@/lib/nominatim");
+    const g = await geocode(p.address);
+    if (g) {
+      lat = g.lat;
+      lng = g.lng;
+    }
+  }
+  if (lat == null || lng == null) {
+    return {
+      ok: false,
+      error: "No coordinates and the address does not geocode. Reject, or fix the address in the database first.",
+    };
+  }
 
   const cityId =
     (await svc.rpc("nearest_city_id", { p_lng: lng, p_lat: lat })).data ?? null;
+  const website = safeHttpUrl((p.website as string) ?? null);
   const { data: placeId } = await svc.rpc("insert_scraped_place", {
     p_name: String(p.name ?? ""),
     p_kind: String(p.kind ?? "other"),
@@ -36,10 +56,10 @@ export async function approveSubmission(submissionId: string): Promise<void> {
     p_city_id: cityId,
     p_lng: lng,
     p_lat: lat,
-    p_website: (p.website as string) ?? null,
+    p_website: website,
     p_opening_notes: (p.when_notes as string) ?? null,
     p_source: "user_submission",
-    p_source_url: (p.website as string) ?? null,
+    p_source_url: website,
     p_confidence: 1,
     p_status: "approved",
   });
@@ -49,6 +69,7 @@ export async function approveSubmission(submissionId: string): Promise<void> {
     .update({ status: "approved", place_id: placeId ?? null })
     .eq("id", submissionId);
   revalidatePath("/admin");
+  return { ok: true };
 }
 
 export async function rejectSubmission(submissionId: string): Promise<void> {
@@ -88,14 +109,25 @@ export async function saveCityChat(
   cityId: number,
   url: string,
   notes: string,
+  intro?: string,
 ): Promise<void> {
   if (!(await assertAdmin())) return;
   const svc = createServiceClient();
   await svc.from("city_chats").upsert({
     city_id: cityId,
-    whatsapp_invite_url: url || null,
+    whatsapp_invite_url: safeHttpUrl(url),
     notes: notes || null,
     updated_at: new Date().toISOString(),
   });
+  if (intro !== undefined) {
+    await svc.from("cities").update({ intro: intro || null }).eq("id", cityId);
+  }
+  revalidatePath("/admin");
+}
+
+export async function resolveReport(reportId: string): Promise<void> {
+  if (!(await assertAdmin())) return;
+  const svc = createServiceClient();
+  await svc.from("reports").update({ status: "resolved" }).eq("id", reportId);
   revalidatePath("/admin");
 }

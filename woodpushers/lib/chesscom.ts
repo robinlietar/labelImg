@@ -19,13 +19,16 @@ export function makeVerifyCode(): string {
 export async function fetchChesscomPlayer(
   username: string,
 ): Promise<{ found: boolean; location: string | null }> {
-  const res = await fetch(`${PUB}/${username.toLowerCase()}`, {
-    headers: { "User-Agent": UA },
-  });
-  if (res.status === 404) return { found: false, location: null };
-  if (!res.ok) return { found: false, location: null };
-  const json = (await res.json()) as { location?: string };
-  return { found: true, location: json.location ?? null };
+  try {
+    const res = await fetch(`${PUB}/${username.toLowerCase()}`, {
+      headers: { "User-Agent": UA },
+    });
+    if (!res.ok) return { found: false, location: null };
+    const json = (await res.json()) as { location?: string };
+    return { found: true, location: json.location ?? null };
+  } catch {
+    return { found: false, location: null };
+  }
 }
 
 export type ChesscomProfile = {
@@ -49,10 +52,15 @@ export async function fetchChesscomProfile(
     title: null,
     meta: { best: {}, record: null, fide: null, country: null },
   };
-  const [pRes, sRes] = await Promise.all([
-    fetch(`${PUB}/${u}`, { headers: { "User-Agent": UA } }),
-    fetch(`${PUB}/${u}/stats`, { headers: { "User-Agent": UA } }),
-  ]);
+  let pRes: Response, sRes: Response;
+  try {
+    [pRes, sRes] = await Promise.all([
+      fetch(`${PUB}/${u}`, { headers: { "User-Agent": UA } }),
+      fetch(`${PUB}/${u}/stats`, { headers: { "User-Agent": UA } }),
+    ]);
+  } catch {
+    return empty;
+  }
   if (!sRes.ok) return empty;
   const player = pRes.ok
     ? ((await pRes.json()) as { title?: string; country?: string })

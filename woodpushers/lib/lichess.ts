@@ -43,29 +43,37 @@ export async function exchangeCode(params: {
   verifier: string;
   redirectUri: string;
 }): Promise<string | null> {
-  const res = await fetch(LICHESS.token, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code: params.code,
-      code_verifier: params.verifier,
-      redirect_uri: params.redirectUri,
-      client_id: LICHESS.clientId,
-    }),
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as { access_token?: string };
-  return json.access_token ?? null;
+  try {
+    const res = await fetch(LICHESS.token, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: params.code,
+        code_verifier: params.verifier,
+        redirect_uri: params.redirectUri,
+        client_id: LICHESS.clientId,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { access_token?: string };
+    return json.access_token ?? null;
+  } catch {
+    return null; // network failure: caller redirects to the error state
+  }
 }
 
 export async function fetchAccount(token: string): Promise<string | null> {
-  const res = await fetch(LICHESS.account, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  const json = (await res.json()) as { username?: string };
-  return json.username ?? null;
+  try {
+    const res = await fetch(LICHESS.account, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { username?: string };
+    return json.username ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export type ChessProfile = {
@@ -84,14 +92,19 @@ export type ChessProfile = {
 export async function fetchLichessProfile(
   username: string,
 ): Promise<ChessProfile> {
-  const res = await fetch(`https://lichess.org/api/user/${username}`, {
-    headers: { "User-Agent": "WoodPushers/0.1" },
-  });
   const empty: ChessProfile = {
     ratings: {},
     title: null,
     meta: { games: null, fide: null, country: null, trend: null, provisional: false },
   };
+  let res: Response;
+  try {
+    res = await fetch(`https://lichess.org/api/user/${username}`, {
+      headers: { "User-Agent": "WoodPushers/0.1" },
+    });
+  } catch {
+    return empty;
+  }
   if (!res.ok) return empty;
   const json = (await res.json()) as {
     title?: string;

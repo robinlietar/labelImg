@@ -26,15 +26,20 @@ export function SubmitForm() {
       when_notes: String(f.get("when_notes") ?? "") || null,
       notes: String(f.get("notes") ?? "") || null,
     };
-    const res = await fetch("/api/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) return setError(json.error ?? "Something went wrong");
-    setResult({ status: json.status });
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(json.error ?? "Something went wrong");
+      setResult({ status: json.status });
+    } catch {
+      setError("Network problem, try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (result) {

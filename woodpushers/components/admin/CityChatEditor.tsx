@@ -11,11 +11,13 @@ export type CityChatRow = {
   slug: string;
   whatsapp_invite_url: string | null;
   notes: string | null;
+  intro: string | null;
 };
 
 export function CityChatEditor({ row }: { row: CityChatRow }) {
   const [url, setUrl] = useState(row.whatsapp_invite_url ?? "");
   const [notes, setNotes] = useState(row.notes ?? "");
+  const [intro, setIntro] = useState(row.intro ?? "");
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
 
@@ -42,12 +44,22 @@ export function CityChatEditor({ row }: { row: CityChatRow }) {
             setSaved(false);
           }}
         />
+        <textarea
+          placeholder="City page intro (shown publicly under the heading)"
+          value={intro}
+          rows={2}
+          onChange={(e) => {
+            setIntro(e.target.value);
+            setSaved(false);
+          }}
+          className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+        />
         <Button
           size="sm"
           disabled={pending}
           onClick={() =>
             start(async () => {
-              await saveCityChat(row.city_id, url, notes);
+              await saveCityChat(row.city_id, url, notes, intro);
               setSaved(true);
             })
           }

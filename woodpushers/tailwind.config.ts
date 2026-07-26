@@ -7,7 +7,8 @@ import type { Config } from "tailwindcss";
  * class toggle, not a second palette.
  */
 const config: Config = {
-  darkMode: "class",
+  // "media" so dark: variants track the OS, matching the CSS-variable theme.
+  darkMode: "media",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",

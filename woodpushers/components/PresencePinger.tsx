@@ -16,11 +16,15 @@ export function PresencePinger() {
     };
     ping();
     const onFocus = () => ping();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", () => {
+    const onVisibility = () => {
       if (document.visibilityState === "visible") ping();
-    });
-    return () => window.removeEventListener("focus", onFocus);
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
   return null;
 }

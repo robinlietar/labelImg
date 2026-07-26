@@ -104,3 +104,9 @@
     text-rendering: optimizeLegibility;
   }
 }
+
+/* Keep the OSM/OpenFreeMap attribution visible above the fixed tab bar. */
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-bottom-right {
+  bottom: calc(56px + env(safe-area-inset-bottom));
+}

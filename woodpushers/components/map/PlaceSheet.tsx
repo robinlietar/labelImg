@@ -23,7 +23,7 @@ export function PlaceSheet({
   const directions = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 p-3">
+    <div className="absolute inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 p-3">
       <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div>

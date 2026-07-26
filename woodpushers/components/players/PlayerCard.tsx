@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { RatingBadges } from "@/components/profile/RatingBadges";
-import { activity, availabilityLabel, type PlayerRow } from "@/lib/players";
+import {
+  activity,
+  availabilityLabel,
+  selfBandLabel,
+  type PlayerRow,
+} from "@/lib/players";
 import { TIME_CONTROLS } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
@@ -45,18 +50,27 @@ export function PlayerCard({ player }: { player: PlayerRow }) {
         </span>
       </div>
 
-      <RatingBadges
-        lichessUsername={player.lichess_username}
-        lichessRatings={player.lichess_ratings}
-        lichessVerified={player.lichess_verified}
-        lichessTitle={player.lichess_title}
-        lichessMeta={player.lichess_meta}
-        chesscomUsername={player.chesscom_username}
-        chesscomRatings={player.chesscom_ratings}
-        chesscomVerified={player.chesscom_verified}
-        chesscomTitle={player.chesscom_title}
-        chesscomMeta={player.chesscom_meta}
-      />
+      {player.lichess_username || player.chesscom_username ? (
+        <RatingBadges
+          lichessUsername={player.lichess_username}
+          lichessRatings={player.lichess_ratings}
+          lichessVerified={player.lichess_verified}
+          lichessTitle={player.lichess_title}
+          lichessMeta={player.lichess_meta}
+          chesscomUsername={player.chesscom_username}
+          chesscomRatings={player.chesscom_ratings}
+          chesscomVerified={player.chesscom_verified}
+          chesscomTitle={player.chesscom_title}
+          chesscomMeta={player.chesscom_meta}
+        />
+      ) : selfBandLabel(player.self_rating_band) ? (
+        <p className="text-sm text-muted-foreground">
+          {selfBandLabel(player.self_rating_band)}{" "}
+          <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">
+            self-declared
+          </span>
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <span

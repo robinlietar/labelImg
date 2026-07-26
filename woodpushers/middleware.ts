@@ -30,7 +30,12 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Supabase being unreachable must never take the whole site down;
+    // pages will simply see no session until it recovers.
+  }
   return response;
 }
 

@@ -10,15 +10,18 @@ const TC_LABEL = Object.fromEntries(TIME_CONTROLS.map((t) => [t.value, t.label])
 
 export default async function PublicProfile({
   params,
+  searchParams,
 }: {
   params: Promise<{ handle: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { handle } = await params;
+  const { error } = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
+      "id, handle, display_name, bio, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, self_rating_band, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, last_seen_at",
     )
     .eq("handle", handle)
     .maybeSingle();
@@ -31,6 +34,12 @@ export default async function PublicProfile({
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
+      {error === "1" && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Could not start the chat. You may have hit the daily limit, try again
+          tomorrow.
+        </p>
+      )}
       <header className="flex items-center gap-4">
         <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary text-2xl">
           ♟

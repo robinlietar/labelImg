@@ -22,15 +22,23 @@ export async function POST(request: Request) {
 
   const code = makeVerifyCode();
   const svc = createServiceClient();
+  // Spec allows unverified linking (shown with an "unverified" tag), but the
+  // OLD account's ratings/title must never stay attached to a NEW username.
   await svc
     .from("profiles")
-    .update({ chesscom_username: handle, chesscom_verified: false })
+    .update({
+      chesscom_username: handle,
+      chesscom_verified: false,
+      chesscom_ratings: null,
+      chesscom_title: null,
+      chesscom_meta: null,
+    })
     .eq("id", user.id);
 
   const jar = await cookies();
   jar.set("chesscom_link", JSON.stringify({ username: handle, code }), {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 1800,
     path: "/",

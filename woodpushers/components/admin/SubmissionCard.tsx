@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { approveSubmission, rejectSubmission, mergeSubmission } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import type { Assessment } from "@/lib/assess";
@@ -14,6 +14,7 @@ export type Submission = {
 
 export function SubmissionCard({ sub }: { sub: Submission }) {
   const [pending, start] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
   const p = sub.payload;
   const a = sub.claude_assessment;
 
@@ -57,11 +58,20 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
         </div>
       )}
 
+      {actionError && (
+        <p className="mt-2 text-xs text-destructive">{actionError}</p>
+      )}
+
       <div className="mt-3 flex gap-2">
         <Button
           size="sm"
           disabled={pending}
-          onClick={() => start(() => approveSubmission(sub.id))}
+          onClick={() =>
+            start(async () => {
+              const res = await approveSubmission(sub.id);
+              setActionError(res.ok ? null : (res.error ?? "failed"));
+            })
+          }
         >
           Approve
         </Button>

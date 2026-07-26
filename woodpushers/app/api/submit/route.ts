@@ -3,6 +3,8 @@ import { getUser } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { canSubmit } from "@/lib/rate-limit";
 import { geocode } from "@/lib/nominatim";
+import { safeHttpUrl } from "@/lib/utils";
+import { PLACE_KINDS } from "@/lib/places";
 import { assessSubmission, type NearbyPlace, type SubmissionPayload } from "@/lib/assess";
 
 const AUTO_APPROVE = 0.85;
@@ -14,9 +16,18 @@ export async function POST(request: Request) {
   if (!(await canSubmit(user.id)))
     return NextResponse.json({ error: "daily submission limit reached" }, { status: 429 });
 
-  const payload = (await request.json()) as SubmissionPayload;
+  let payload: SubmissionPayload;
+  try {
+    payload = (await request.json()) as SubmissionPayload;
+  } catch {
+    return NextResponse.json({ error: "bad request body" }, { status: 400 });
+  }
   if (!payload?.name?.trim() || !payload?.kind)
     return NextResponse.json({ error: "name and kind required" }, { status: 400 });
+  if (!(PLACE_KINDS as readonly string[]).includes(payload.kind))
+    return NextResponse.json({ error: "unknown kind" }, { status: 400 });
+  // Only http(s) links survive; javascript:/data: are dropped here for good.
+  payload.website = safeHttpUrl(payload.website);
 
   const svc = createServiceClient();
 
@@ -70,13 +81,19 @@ export async function POST(request: Request) {
     placeId = (newId as string) ?? null;
   }
 
-  await svc.from("place_submissions").insert({
+  const { error: insertError } = await svc.from("place_submissions").insert({
     submitted_by: user.id,
     payload: { ...payload, lat, lng },
     claude_assessment: assessment,
     place_id: placeId,
     status: autoApprove ? "auto_approved" : "pending",
   });
+  if (insertError) {
+    return NextResponse.json(
+      { error: "could not save the submission, try again" },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     ok: true,
