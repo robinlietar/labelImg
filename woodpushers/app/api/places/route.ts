@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { fixturesInBbox } from "@/lib/fixtures";
 
 /**
  * Approved places within a map viewport. Public. Returns GeoJSON-ish points
@@ -17,6 +18,14 @@ export async function GET(request: Request) {
   const [west, south, east, north] = nums;
   const kindsParam = searchParams.get("kinds");
   const kinds = kindsParam ? kindsParam.split(",").filter(Boolean) : null;
+
+  // Local dev without Supabase configured: serve demo pins so the map is
+  // never empty. Never active in a configured deployment.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    return NextResponse.json({
+      places: fixturesInBbox(west, south, east, north, kinds),
+    });
+  }
 
   try {
     const supabase = await createClient();
