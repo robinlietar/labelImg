@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updatePlace, geocodeAddress } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { PLACE_KINDS, KIND_LABEL, type PlaceKind } from "@/lib/places";
 import { cn } from "@/lib/utils";
 import { ChevronDown, MapPin } from "lucide-react";
@@ -166,15 +167,11 @@ export function EditablePlaceCard({
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
             <Field label="Kind">
-              <select
-                value={kind}
-                onChange={(e) => setKind(e.target.value)}
-                className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
-              >
+              <Select value={kind} onChange={(e) => setKind(e.target.value)}>
                 {PLACE_KINDS.map((k: PlaceKind) => (
                   <option key={k} value={k}>{KIND_LABEL[k]}</option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field label="Address" className="md:col-span-2">
               <div className="flex gap-2">

@@ -23,18 +23,38 @@ type Feature =
   | Supercluster.PointFeature<LeafProps>
   | Supercluster.ClusterFeature<Record<string, never>>;
 
-export function MapView({
-  initial,
-}: {
-  initial: { longitude: number; latitude: number; zoom: number };
-}) {
+type ViewState = { longitude: number; latitude: number; zoom: number };
+
+const VIEW_KEY = "wp:map-view";
+
+function restoredView(fallback: ViewState): ViewState {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    if (!raw) return fallback;
+    const v = JSON.parse(raw) as ViewState;
+    if (
+      typeof v.longitude === "number" &&
+      typeof v.latitude === "number" &&
+      typeof v.zoom === "number"
+    )
+      return v;
+  } catch {
+    /* corrupted storage: ignore */
+  }
+  return fallback;
+}
+
+export function MapView({ initial }: { initial: ViewState }) {
+  // Where you left the map wins over the server's guess (home city).
+  const [initialView] = useState(() => restoredView(initial));
   const mapRef = useRef<MapRef>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [places, setPlaces] = useState<PlacePoint[]>([]);
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(
     null,
   );
-  const [zoom, setZoom] = useState(initial.zoom);
+  const [zoom, setZoom] = useState(initialView.zoom);
   const [selected, setSelected] = useState<PlacePoint | null>(null);
   const [kinds, setKinds] = useState<PlaceKind[]>([]);
   const scheme = useColorScheme();
@@ -80,6 +100,16 @@ export function MapView({
     ];
     setBounds(bbox);
     setZoom(map.getZoom());
+    // Remember the viewport so the map reopens where you left it.
+    try {
+      const c = map.getCenter();
+      localStorage.setItem(
+        VIEW_KEY,
+        JSON.stringify({ longitude: c.lng, latitude: c.lat, zoom: map.getZoom() }),
+      );
+    } catch {
+      /* storage unavailable: fine */
+    }
     void fetchPlaces(bbox, kinds);
   }, [fetchPlaces, kinds]);
 
@@ -138,7 +168,7 @@ export function MapView({
       <Map
         ref={mapRef}
         mapStyle={styleUrl}
-        initialViewState={initial}
+        initialViewState={initialView}
         onLoad={refresh}
         onMoveEnd={refresh}
         onError={(e) => {

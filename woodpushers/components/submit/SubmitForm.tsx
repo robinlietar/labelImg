@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { PLACE_KINDS, KIND_LABEL } from "@/lib/places";
 
 type Result = { status: "published" | "in_review" } | null;
@@ -66,18 +67,13 @@ export function SubmitForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="kind">Kind</Label>
-        <select
-          id="kind"
-          name="kind"
-          className="h-11 rounded-lg border border-input bg-background px-3 text-base"
-          defaultValue="club"
-        >
+        <Select id="kind" name="kind" defaultValue="club">
           {PLACE_KINDS.map((k) => (
             <option key={k} value={k}>
               {KIND_LABEL[k]}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-2">

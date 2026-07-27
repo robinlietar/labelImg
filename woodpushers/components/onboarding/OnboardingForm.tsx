@@ -6,6 +6,7 @@ import { HomeCityPicker } from "@/components/onboarding/HomeCityPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
   AVAILABILITY_CHIPS,
   RATING_BANDS,
@@ -93,19 +94,14 @@ export function OnboardingForm() {
         <p className="text-xs text-muted-foreground">
           Skip this if you will link Lichess or chess.com on the next screen.
         </p>
-        <select
-          id="rating_band"
-          name="rating_band"
-          className="h-11 rounded-lg border border-input bg-background px-3 text-base"
-          defaultValue=""
-        >
+        <Select id="rating_band" name="rating_band" defaultValue="">
           <option value="">Prefer not to say</option>
           {RATING_BANDS.map((b) => (
             <option key={b.value} value={b.value}>
               {b.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <label className="flex items-center justify-between rounded-lg border border-border px-3 py-3">

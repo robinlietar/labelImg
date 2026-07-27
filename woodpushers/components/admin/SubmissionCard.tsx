@@ -8,6 +8,7 @@ import {
 } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { PLACE_KINDS, KIND_LABEL, type PlaceKind } from "@/lib/places";
 import type { Assessment } from "@/lib/assess";
 import { Sparkles } from "lucide-react";
@@ -104,15 +105,11 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">Kind</span>
-          <select
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-            className="h-11 rounded-lg border border-input bg-background px-2 text-sm"
-          >
+          <Select value={kind} onChange={(e) => setKind(e.target.value)}>
             {PLACE_KINDS.map((k: PlaceKind) => (
               <option key={k} value={k}>{KIND_LABEL[k]}</option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1 md:col-span-2">
           <span className="text-xs font-medium text-muted-foreground">Address</span>
