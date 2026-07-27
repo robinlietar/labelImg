@@ -1,14 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 
-/** Current authenticated user, or null. Never throws (missing env, outage). */
+/**
+ * Current authenticated user, or null. Never throws (missing env, outage).
+ *
+ * Fast path: getClaims() verifies the session JWT locally (asymmetric keys,
+ * cached JWKS), avoiding a network round trip to the auth server on every
+ * server-rendered page. Falls back to the network check if unavailable.
+ */
 export async function getUser(): Promise<User | null> {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user;
+    try {
+      const { data } = await supabase.auth.getClaims();
+      const claims = data?.claims;
+      if (claims?.sub) {
+        return { id: claims.sub, email: claims.email } as User;
+      }
+      return null;
+    } catch {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user;
+    }
   } catch {
     return null;
   }
@@ -35,6 +50,7 @@ export type Profile = {
   visiting_until: string | null;
   availability_chips: string[] | null;
   open_today_until: string | null;
+  ratings_refreshed_at: string | null;
   home_city_id: number | null;
   visible: boolean;
   last_seen_at: string | null;
@@ -44,14 +60,12 @@ export type Profile = {
 export async function getProfile(): Promise<Profile | null> {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getUser();
     if (!user) return null;
     const { data } = await supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, home_city_id, visible, last_seen_at",
+        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, ratings_refreshed_at, home_city_id, visible, last_seen_at",
       )
       .eq("id", user.id)
       .maybeSingle();

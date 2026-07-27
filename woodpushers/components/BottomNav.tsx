@@ -53,7 +53,9 @@ export function BottomNav() {
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("wp:unread-refresh", onFocus);
     };
-  }, [pathname]);
+    // Event/interval driven; re-running per navigation adds a request per tab tap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Full-screen conversation view has its own composer; hide the tab bar there.
   if (/^\/chat\/[^/]+$/.test(pathname)) return null;

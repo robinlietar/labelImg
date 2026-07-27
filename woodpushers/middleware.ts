@@ -13,6 +13,11 @@ export async function middleware(request: NextRequest) {
   // During Phase 0/1 before env is set, do nothing.
   if (!url || !anon) return response;
 
+  // API calls carry their own auth and do not need a session refresh round
+  // trip; refreshing on page navigations is enough. This shaves a network
+  // hop off every /api/* request (the unread poll, places viewport, etc).
+  if (request.nextUrl.pathname.startsWith("/api/")) return response;
+
   const supabase = createServerClient(url, anon, {
     cookies: {
       getAll() {

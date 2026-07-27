@@ -9,9 +9,17 @@ import { Input } from "@/components/ui/input";
 type Step = "input" | "code" | "done";
 
 /** chess.com linking via the Location-field code trick. */
-export function ChesscomLink({ initialUsername }: { initialUsername: string | null }) {
+export function ChesscomLink({
+  initialUsername,
+  initialVerified = false,
+}: {
+  initialUsername: string | null;
+  initialVerified?: boolean;
+}) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(initialUsername ? "input" : "input");
+  // Once verified, hide the form behind a small "change account" affordance.
+  const [editing, setEditing] = useState(!initialVerified);
+  const [step, setStep] = useState<Step>("input");
   const [username, setUsername] = useState(initialUsername ?? "");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,6 +67,18 @@ export function ChesscomLink({ initialUsername }: { initialUsername: string | nu
 
   if (step === "done") {
     return <p className="text-sm text-primary">chess.com verified.</p>;
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="text-left text-xs text-muted-foreground underline"
+      >
+        Change chess.com account
+      </button>
+    );
   }
 
   return (

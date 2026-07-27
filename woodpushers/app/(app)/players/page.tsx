@@ -27,7 +27,19 @@ export default async function PlayersPage({
       </main>
     );
   }
-  const profile = await getProfile();
+  const supabase = await createClient();
+  const sp = await searchParams;
+  const [profile, rpc] = await Promise.all([
+    getProfile(),
+    supabase.rpc("players_nearby", {
+      radius_km: Number(sp.radius ?? 25),
+      min_rating: sp.min ? Number(sp.min) : null,
+      max_rating: sp.max ? Number(sp.max) : null,
+      time_control: sp.tc || null,
+      availability: sp.availability || null,
+      active_within_hours: sp.active === "1" ? 168 : null,
+    }),
+  ]);
   if (!profile) {
     return (
       <main className="mx-auto w-full max-w-md px-5 pb-28 pt-10 text-center">
@@ -39,17 +51,7 @@ export default async function PlayersPage({
     );
   }
 
-  const sp = await searchParams;
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("players_nearby", {
-    radius_km: Number(sp.radius ?? 25),
-    min_rating: sp.min ? Number(sp.min) : null,
-    max_rating: sp.max ? Number(sp.max) : null,
-    time_control: sp.tc || null,
-    availability: sp.availability || null,
-    active_within_hours: sp.active === "1" ? 168 : null,
-  });
-  const players = (data ?? []) as PlayerRow[];
+  const players = (rpc.data ?? []) as PlayerRow[];
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.25rem)]">

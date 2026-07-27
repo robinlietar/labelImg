@@ -27,20 +27,21 @@ export default async function ChatPage({
   if (!members || !members.some((m) => m.profile_id === user.id)) notFound();
 
   const otherId = members.find((m) => m.profile_id !== user.id)?.profile_id;
-  const { data: other } = otherId
-    ? await supabase
-        .from("profiles")
-        .select("handle, display_name, avatar_url")
-        .eq("id", otherId)
-        .maybeSingle()
-    : { data: null };
-
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("id, sender_id, body, created_at")
-    .eq("conversation_id", id)
-    .order("created_at", { ascending: true })
-    .limit(200);
+  const [{ data: other }, { data: messages }] = await Promise.all([
+    otherId
+      ? supabase
+          .from("profiles")
+          .select("handle, display_name, avatar_url")
+          .eq("id", otherId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("messages")
+      .select("id, sender_id, body, created_at")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: true })
+      .limit(200),
+  ]);
 
   return (
     <ChatThread

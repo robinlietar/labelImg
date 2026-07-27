@@ -3,6 +3,7 @@ import { getUser, getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
+import { SyncStatus } from "@/components/profile/SyncStatus";
 import { AvailabilityToggle } from "@/components/profile/AvailabilityToggle";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { BioEditor } from "@/components/profile/BioEditor";
@@ -81,16 +82,34 @@ export default async function MePage({
         </div>
 
         <div className="mt-4 flex flex-col gap-3">
-          <a href="/api/link/lichess/start">
-            <Button variant="outline" className="w-full">
-              {profile.lichess_verified ? "Re-link Lichess" : "Link Lichess"}
-            </Button>
-          </a>
+          {profile.lichess_verified ? (
+            <a
+              href="/api/link/lichess/start"
+              className="text-xs text-muted-foreground underline"
+            >
+              Re-link Lichess account
+            </a>
+          ) : (
+            <a href="/api/link/lichess/start">
+              <Button variant="outline" className="w-full">
+                Link Lichess
+              </Button>
+            </a>
+          )}
           <div>
             <p className="mb-1 text-xs text-muted-foreground">chess.com</p>
-            <ChesscomLink initialUsername={profile.chesscom_username} />
+            <ChesscomLink
+              initialUsername={profile.chesscom_username}
+              initialVerified={profile.chesscom_verified}
+            />
           </div>
         </div>
+
+        {(profile.lichess_username || profile.chesscom_username) && (
+          <div className="mt-4 border-t border-border pt-3">
+            <SyncStatus lastSynced={profile.ratings_refreshed_at} />
+          </div>
+        )}
       </section>
 
       <section className="mt-6">
