@@ -12,7 +12,8 @@ export default async function OnboardingPage() {
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-md px-5 py-8">
-      <h1 className="text-2xl font-semibold">Set up your profile</h1>
+      <p className="text-xs font-medium uppercase tracking-wide text-primary">Step 1 of 2</p>
+      <h1 className="mt-1 text-2xl font-semibold">Set up your profile</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Two minutes. You can change all of this later.
       </p>

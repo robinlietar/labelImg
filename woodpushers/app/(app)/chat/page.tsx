@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/Avatar";
+import { relTime } from "@/lib/time";
 
 export const metadata = { title: "Chats" };
 // Unread pills must reflect reads instantly, never a cached render.
@@ -27,7 +28,7 @@ export default async function ChatListPage() {
   const conversations = (data ?? []) as Conversation[];
 
   return (
-    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-6">
+    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <h1 className="text-xl font-semibold">Chats</h1>
 
       {conversations.length === 0 ? (
@@ -46,11 +47,14 @@ export default async function ChatListPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate font-medium">{c.other_display_name}</p>
+                    <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{relTime(c.last_at)}</span>
                     {c.unread > 0 && (
                       <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
                         {c.unread}
                       </span>
                     )}
+                    </span>
                   </div>
                   <p className="truncate text-sm text-muted-foreground">
                     {c.last_body ?? "New conversation"}

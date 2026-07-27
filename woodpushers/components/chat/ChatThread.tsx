@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/Avatar";
+import { clockTime, dayLabel } from "@/lib/time";
 import { blockUser, reportUser } from "@/app/(app)/p/actions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Ban, Flag, MoreHorizontal, Send } from "lucide-react";
@@ -109,7 +110,7 @@ export function ChatThread({
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-md flex-col">
-      <header className="relative flex items-center gap-3 border-b border-border px-4 py-3">
+      <header className="relative flex items-center gap-3 border-b border-border px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <Link href="/chat" aria-label="Back">
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -163,22 +164,51 @@ export function ChatThread({
         )}
       </header>
 
-      <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
-        {messages.map((m) => {
+      <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-4">
+        {messages.map((m, i) => {
           const mine = m.sender_id === meId;
+          const prev = messages[i - 1];
+          const next = messages[i + 1];
+          const newDay =
+            !prev ||
+            new Date(prev.created_at).toDateString() !==
+              new Date(m.created_at).toDateString();
+          // Show the time under the last message of a same-sender run.
+          const endOfRun =
+            !next ||
+            next.sender_id !== m.sender_id ||
+            new Date(next.created_at).getTime() -
+              new Date(m.created_at).getTime() >
+              5 * 60 * 1000;
           return (
-            <div
-              key={m.id}
-              className={mine ? "flex justify-end" : "flex justify-start"}
-            >
-              <div
-                className={
-                  mine
-                    ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
-                    : "max-w-[80%] rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm"
-                }
-              >
-                {m.body}
+            <div key={m.id}>
+              {newDay && (
+                <p className="my-3 text-center text-[11px] font-medium text-muted-foreground">
+                  {dayLabel(m.created_at)}
+                </p>
+              )}
+              <div className={mine ? "flex justify-end" : "flex justify-start"}>
+                <div className="max-w-[80%]">
+                  <div
+                    className={
+                      mine
+                        ? "rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                        : "rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm"
+                    }
+                  >
+                    {m.body}
+                  </div>
+                  {endOfRun && (
+                    <p
+                      className={
+                        "mt-0.5 text-[10px] text-muted-foreground " +
+                        (mine ? "text-right" : "text-left")
+                      }
+                    >
+                      {clockTime(m.created_at)}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           );

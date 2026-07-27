@@ -40,7 +40,7 @@ export default async function MePage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
+    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       {link === "lichess_ok" && (
         <p className="mb-4 rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground">
           Lichess linked and verified.

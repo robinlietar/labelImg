@@ -43,8 +43,8 @@ export function PlayersFilters() {
     );
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="relative flex flex-col gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {RADII.map((r) => (
           <button
             key={r}
@@ -56,7 +56,7 @@ export function PlayersFilters() {
         ))}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {RATING_BANDS.map((b) => (
           <button
             key={b.label}
@@ -68,7 +68,7 @@ export function PlayersFilters() {
         ))}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TIME_CONTROLS.map((t) => (
           <button
             key={t.value}
@@ -93,6 +93,7 @@ export function PlayersFilters() {
           Active this week
         </button>
       </div>
+      <span className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent" />
     </div>
   );
 }

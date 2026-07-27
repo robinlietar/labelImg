@@ -32,8 +32,13 @@ function RatingRow({
   meta?: Record<string, unknown> | null;
 }) {
   if (!username) return null;
+  const label: Record<string, string> = {
+    blitz: "Blitz",
+    rapid: "Rapid",
+    classical: "Classical",
+  };
   const shown = ["blitz", "rapid", "classical"]
-    .map((k) => (ratings?.[k] != null ? `${k[0].toUpperCase()} ${ratings[k]}` : null))
+    .map((k) => (ratings?.[k] != null ? `${label[k]} ${ratings[k]}` : null))
     .filter(Boolean);
   const extra = metaLine(meta);
   return (
@@ -54,7 +59,7 @@ function RatingRow({
           </span>
         )}
         {shown.length > 0 && (
-          <span className="text-muted-foreground">· {shown.join("  ")}</span>
+          <span className="text-muted-foreground">{shown.join(" · ")}</span>
         )}
       </div>
       {extra && <span className="text-xs text-muted-foreground">{extra}</span>}

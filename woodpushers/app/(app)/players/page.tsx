@@ -52,7 +52,7 @@ export default async function PlayersPage({
   const players = (data ?? []) as PlayerRow[];
 
   return (
-    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-6">
+    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <h1 className="text-xl font-semibold">Players nearby</h1>
       <div className="mt-3">
         <PlayersFilters />
