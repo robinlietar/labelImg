@@ -35,7 +35,7 @@ export function BottomNav() {
   useEffect(() => {
     let alive = true;
     const load = () =>
-      fetch("/api/unread")
+      fetch("/api/unread", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : { unread: 0 }))
         .then((j) => alive && setUnread(j.unread ?? 0))
         .catch(() => {});
@@ -44,11 +44,14 @@ export function BottomNav() {
     const timer = setInterval(load, 60_000);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
+    // Fired by the chat thread right after it marks itself read.
+    window.addEventListener("wp:unread-refresh", onFocus);
     return () => {
       alive = false;
       clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("wp:unread-refresh", onFocus);
     };
   }, [pathname]);
 

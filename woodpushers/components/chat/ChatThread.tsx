@@ -44,7 +44,9 @@ export function ChatThread({
 
   useEffect(() => {
     const sb = supabase.current;
-    void sb.rpc("mark_read", { p_conversation_id: conversationId });
+    void sb
+      .rpc("mark_read", { p_conversation_id: conversationId })
+      .then(() => window.dispatchEvent(new Event("wp:unread-refresh")));
 
     const channel = sb
       .channel(`messages:${conversationId}`)

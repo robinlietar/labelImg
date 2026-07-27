@@ -211,6 +211,16 @@ export async function updatePlace(
   return { ok: true };
 }
 
+/** One-tap address to coordinates lookup for the admin editors. */
+export async function geocodeAddress(
+  address: string,
+): Promise<{ lat: number; lng: number } | null> {
+  if (!(await assertAdmin())) return null;
+  if (!address.trim()) return null;
+  const { geocode } = await import("@/lib/nominatim");
+  return geocode(address.trim());
+}
+
 export async function resolveReport(reportId: string): Promise<void> {
   if (!(await assertAdmin())) return;
   const svc = createServiceClient();

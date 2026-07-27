@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// Never cache: the badge must clear the moment a thread is read.
+export const dynamic = "force-dynamic";
+
 /** Total unread messages for the signed-in user, for the tab-bar badge. */
 export async function GET() {
   try {

@@ -96,10 +96,14 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
         </p>
       )}
 
-      {/* Editable final version */}
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex gap-2">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      {/* Editable final version, every field labeled */}
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Name</span>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Kind</span>
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value)}
@@ -109,14 +113,19 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
               <option key={k} value={k}>{KIND_LABEL[k]}</option>
             ))}
           </select>
-        </div>
-        <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" />
-        <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Website" />
-        <Input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="One-line description"
-        />
+        </label>
+        <label className="flex flex-col gap-1 md:col-span-2">
+          <span className="text-xs font-medium text-muted-foreground">Address</span>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Website</span>
+          <Input value={website} onChange={(e) => setWebsite(e.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">One-line description</span>
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+        </label>
       </div>
 
       {actionError && <p className="mt-2 text-xs text-destructive">{actionError}</p>}

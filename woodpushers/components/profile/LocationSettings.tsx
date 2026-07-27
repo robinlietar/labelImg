@@ -42,9 +42,13 @@ export function LocationSettings({ currentCity }: { currentCity: string | null }
   return (
     <div className="rounded-xl border border-border p-4">
       <h2 className="text-sm font-semibold">Location</h2>
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <span className="text-xs text-muted-foreground">Current city</span>
+        <span className="text-sm font-medium">{currentCity ?? "Not set"}</span>
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Currently: {currentCity ?? "not set"}. Only a distance band is ever shown
-        to others, never your position.
+        Others only ever see a distance band, never your position. Wrong city?
+        Fix it below.
       </p>
 
       <div className="mt-3 flex flex-col gap-3">

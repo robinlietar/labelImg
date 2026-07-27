@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/Avatar";
 
 export const metadata = { title: "Chats" };
+// Unread pills must reflect reads instantly, never a cached render.
+export const dynamic = "force-dynamic";
 
 type Conversation = {
   conversation_id: string;
