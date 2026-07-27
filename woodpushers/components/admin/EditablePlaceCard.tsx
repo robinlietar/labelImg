@@ -5,7 +5,7 @@ import { updatePlace, geocodeAddress } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { PLACE_KINDS, KIND_LABEL, type PlaceKind } from "@/lib/places";
+import { PLACE_KINDS, KIND_LABEL, SOURCE_LABEL, type PlaceKind } from "@/lib/places";
 import { cn } from "@/lib/utils";
 import { ChevronDown, MapPin } from "lucide-react";
 
@@ -148,8 +148,9 @@ export function EditablePlaceCard({
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {place.city_name ?? "no city"} · {address || "no address"} ·{" "}
-            {place.source}
-            {place.confidence != null && ` · conf ${place.confidence}`}
+            {SOURCE_LABEL[place.source] ?? place.source}
+            {place.confidence != null &&
+              ` · ${Math.round(place.confidence * 100)}% confident`}
           </p>
         </div>
         <ChevronDown

@@ -29,7 +29,7 @@ export function KindFilter({
 
   return (
     <div className="relative">
-      <div className="flex gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-1 pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_left,transparent,black_2.5rem)]">
         {PLACE_KINDS.map((k) => {
           const active = value.includes(k);
           return (
@@ -48,8 +48,6 @@ export function KindFilter({
           );
         })}
       </div>
-      {/* Right-edge fade: signals there are more chips to scroll. */}
-      <span className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background/70 to-transparent" />
     </div>
   );
 }

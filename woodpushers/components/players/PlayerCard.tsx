@@ -45,7 +45,7 @@ export function PlayerCard({ player }: { player: PlayerRow }) {
               act.fresh ? "bg-green-500" : "bg-muted-foreground/40",
             )}
           />
-          {player.distance_band}
+          {player.distance_band === "unknown" ? "" : player.distance_band}
         </span>
       </div>
 
@@ -66,7 +66,7 @@ export function PlayerCard({ player }: { player: PlayerRow }) {
         <p className="text-sm text-muted-foreground">
           {selfBandLabel(player.self_rating_band)}{" "}
           <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">
-            self-declared
+            Self-declared
           </span>
         </p>
       ) : null}

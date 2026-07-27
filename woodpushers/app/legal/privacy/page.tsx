@@ -12,11 +12,11 @@ export default function PrivacyPage() {
       </p>
       <h2 className="mt-6 font-semibold">What we store</h2>
       <ul className="mt-2 list-disc space-y-2 pl-5">
-        <li>Your handle, display name, and anything you add to your profile.</li>
+        <li>Your username, display name, and anything you add to your profile.</li>
         <li>
           A coarse location derived from your home city, rounded so it cannot
           point to where you live. Others only ever see a distance band like
-          &quot;~2 km&quot; or &quot;same city&quot;.
+          &quot;~2 km&quot; or &quot;same region&quot;.
         </li>
         <li>Linked chess accounts and their public ratings, if you add them.</li>
         <li>Messages you send, so we can deliver them.</li>

@@ -59,7 +59,10 @@ export async function completeOnboarding(
     p_rating_band: ratingBand || null,
     p_visible: visible,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("create_profile failed", error);
+    return { error: "Could not save your profile, try again." };
+  }
 
   redirect("/onboarding/link");
 }

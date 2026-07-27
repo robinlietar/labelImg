@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getUser, getProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
 import { SyncStatus } from "@/components/profile/SyncStatus";
@@ -29,16 +28,9 @@ export default async function MePage({
     !!profile.open_today_until &&
     new Date(profile.open_today_until).getTime() > Date.now();
 
-  let cityName: string | null = null;
-  if (profile.home_city_id) {
-    const supabase = await createClient();
-    const { data: city } = await supabase
-      .from("cities")
-      .select("name, country_code")
-      .eq("id", profile.home_city_id)
-      .maybeSingle();
-    cityName = city ? `${city.name}, ${city.country_code}` : null;
-  }
+  const cityName = profile.home_city
+    ? `${profile.home_city.name}, ${profile.home_city.country_code}`
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
@@ -87,7 +79,7 @@ export default async function MePage({
               href="/api/link/lichess/start"
               className="text-xs text-muted-foreground underline"
             >
-              Re-link Lichess account
+              Change Lichess account
             </a>
           ) : (
             <a href="/api/link/lichess/start">
@@ -97,7 +89,9 @@ export default async function MePage({
             </a>
           )}
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">chess.com</p>
+            {!profile.chesscom_verified && (
+              <p className="mb-1 text-xs text-muted-foreground">chess.com</p>
+            )}
             <ChesscomLink
               initialUsername={profile.chesscom_username}
               initialVerified={profile.chesscom_verified}

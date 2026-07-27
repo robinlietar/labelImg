@@ -55,7 +55,7 @@ function RatingRow({
           <BadgeCheck className="h-4 w-4 text-primary" aria-label="verified" />
         ) : (
           <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground">
-            unverified
+            Unverified
           </span>
         )}
         {shown.length > 0 && (

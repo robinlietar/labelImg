@@ -6,6 +6,6 @@ import { refreshRatingsByUserId } from "@/lib/refresh-ratings";
 export async function POST() {
   const user = await getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
-  await refreshRatingsByUserId(user.id);
-  return NextResponse.json({ ok: true });
+  const ok = await refreshRatingsByUserId(user.id);
+  return NextResponse.json({ ok }, { status: ok ? 200 : 502 });
 }

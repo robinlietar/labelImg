@@ -40,7 +40,7 @@ export async function refreshRatingsFor(p: LinkedProfile): Promise<boolean> {
 }
 
 /** Refresh a single user by id, used on login. */
-export async function refreshRatingsByUserId(userId: string): Promise<void> {
+export async function refreshRatingsByUserId(userId: string): Promise<boolean> {
   const svc = createServiceClient();
   const { data } = await svc
     .from("profiles")
@@ -48,8 +48,9 @@ export async function refreshRatingsByUserId(userId: string): Promise<void> {
     .eq("id", userId)
     .maybeSingle();
   if (data && (data.lichess_username || data.chesscom_username)) {
-    await refreshRatingsFor(data as LinkedProfile);
+    return refreshRatingsFor(data as LinkedProfile);
   }
+  return false;
 }
 
 /** Daily batch used by the cron. Oldest-refreshed first, gentle pace. */

@@ -29,11 +29,14 @@ export function SyncStatus({ lastSynced }: { lastSynced: string | null }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-xs text-muted-foreground">
-        {lastSynced
-          ? relTime(lastSynced) === "now"
-            ? "Ratings synced just now"
-            : `Ratings synced ${relTime(lastSynced)} ago`
-          : "Ratings sync nightly and on login"}
+        {(() => {
+          if (!lastSynced) return "Ratings sync nightly and on login";
+          const t = relTime(lastSynced);
+          if (t === "now") return "Ratings synced just now";
+          return /^\d+[mhd]$/.test(t)
+            ? `Ratings synced ${t} ago`
+            : `Ratings synced ${t}`;
+        })()}
       </span>
       <Button size="sm" variant="ghost" onClick={resync} disabled={busy}>
         <RefreshCw className={busy ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />

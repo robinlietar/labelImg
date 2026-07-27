@@ -11,6 +11,7 @@ import { AvailabilityToggle } from "@/components/profile/AvailabilityToggle";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
+import { SyncStatus } from "@/components/profile/SyncStatus";
 import { ShareButton } from "@/components/ShareButton";
 import { SubmissionCard } from "@/components/admin/SubmissionCard";
 import { EditablePlaceCard } from "@/components/admin/EditablePlaceCard";
@@ -255,7 +256,10 @@ export default async function PreviewPage({
               />
             </div>
             <div className="mt-4">
-              <ChesscomLink initialUsername="robinobok" />
+              <ChesscomLink initialUsername="robinobok" initialVerified={true} />
+            </div>
+            <div className="mt-4 border-t border-border pt-3">
+              <SyncStatus lastSynced={iso(90)} />
             </div>
           </div>
           <div className="mt-6">

@@ -18,6 +18,32 @@ export async function middleware(request: NextRequest) {
   // hop off every /api/* request (the unread poll, places viewport, etc).
   if (request.nextUrl.pathname.startsWith("/api/")) return response;
 
+  // The auth round trip below exists only to refresh a near-expiry session
+  // cookie. While the access token is comfortably fresh, skip it: pages
+  // verify the JWT locally themselves. This removes the blocking network
+  // hop from almost every navigation.
+  try {
+    const chunks = request.cookies
+      .getAll()
+      .filter((c) => /^sb-.*-auth-token(\.\d+)?$/.test(c.name))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => c.value)
+      .join("");
+    if (chunks) {
+      const raw = chunks.startsWith("base64-") ? chunks.slice(7) : chunks;
+      const json = atob(raw.replace(/-/g, "+").replace(/_/g, "/"));
+      const session = JSON.parse(json) as { expires_at?: number };
+      if (
+        session.expires_at &&
+        session.expires_at * 1000 - Date.now() > 5 * 60 * 1000
+      ) {
+        return response;
+      }
+    }
+  } catch {
+    // Unparseable cookie: fall through to the full refresh below.
+  }
+
   const supabase = createServerClient(url, anon, {
     cookies: {
       getAll() {

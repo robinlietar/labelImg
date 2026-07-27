@@ -11,7 +11,7 @@ export function VisibilityToggle({ visible }: { visible: boolean }) {
       <span className="text-sm">
         Visible in the players directory
         <span className="block text-xs text-muted-foreground">
-          Only a distance band is shown, never your location.
+          Others only see a rough distance, like ~2 km, never your location.
         </span>
       </span>
       <input

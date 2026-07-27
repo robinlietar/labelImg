@@ -26,6 +26,14 @@ export const KIND_LABEL: Record<PlaceKind, string> = {
   other: "Other",
 };
 
+/** Friendly names for where a place record came from. */
+export const SOURCE_LABEL: Record<string, string> = {
+  osm: "OpenStreetMap",
+  claude_research: "Researched",
+  user_submission: "Community",
+  import: "Imported",
+};
+
 export type PlacePoint = {
   id: string;
   name: string;

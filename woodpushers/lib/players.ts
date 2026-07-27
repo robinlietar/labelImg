@@ -61,10 +61,10 @@ export function activity(lastSeen: string | null): {
   fresh: boolean;
   label: string;
 } {
-  if (!lastSeen) return { fresh: false, label: "new" };
+  if (!lastSeen) return { fresh: false, label: "New here" };
   const ms = Date.now() - new Date(lastSeen).getTime();
   const hours = ms / 3_600_000;
-  if (hours < 48) return { fresh: true, label: "active recently" };
+  if (hours < 48) return { fresh: true, label: "Active recently" };
   const days = Math.round(hours / 24);
-  return { fresh: false, label: `active ${days}d ago` };
+  return { fresh: false, label: `Active ${days} days ago` };
 }

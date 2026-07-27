@@ -19,22 +19,13 @@ export default async function ChatPage({
 
   const supabase = await createClient();
 
-  // Membership is enforced by RLS: a non-member reads zero rows.
-  const { data: members } = await supabase
-    .from("conversation_members")
-    .select("profile_id")
-    .eq("conversation_id", id);
-  if (!members || !members.some((m) => m.profile_id === user.id)) notFound();
-
-  const otherId = members.find((m) => m.profile_id !== user.id)?.profile_id;
-  const [{ data: other }, { data: messages }] = await Promise.all([
-    otherId
-      ? supabase
-          .from("profiles")
-          .select("handle, display_name, avatar_url")
-          .eq("id", otherId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+  // One parallel round trip: membership (with the other player's profile
+  // embedded) and the messages. RLS returns zero rows for non-members.
+  const [{ data: members }, { data: messages }] = await Promise.all([
+    supabase
+      .from("conversation_members")
+      .select("profile_id, profiles(handle, display_name, avatar_url)")
+      .eq("conversation_id", id),
     supabase
       .from("messages")
       .select("id, sender_id, body, created_at")
@@ -42,6 +33,19 @@ export default async function ChatPage({
       .order("created_at", { ascending: true })
       .limit(200),
   ]);
+  if (!members || !members.some((m) => m.profile_id === user.id)) notFound();
+
+  const otherRow = members.find((m) => m.profile_id !== user.id);
+  const otherProfile = otherRow
+    ? ((Array.isArray(otherRow.profiles)
+        ? otherRow.profiles[0]
+        : otherRow.profiles) as {
+        handle: string;
+        display_name: string;
+        avatar_url: string | null;
+      } | null)
+    : null;
+  const other = otherProfile;
 
   return (
     <ChatThread

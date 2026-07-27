@@ -58,7 +58,7 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
           Submitted {new Date(sub.created_at).toLocaleString()}
         </p>
         {a && (
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs" title="quality score">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs" title="Claude quality score">
             {(a.quality_score * 100).toFixed(0)}%
           </span>
         )}
@@ -68,7 +68,10 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
       <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
         <div className="rounded-lg bg-secondary/40 p-2">
           <p className="font-semibold text-muted-foreground">User submitted</p>
-          <p className="mt-1">{str(p.name) || "(no name)"} · {str(p.kind)}</p>
+          <p className="mt-1">
+            {str(p.name) || "(no name)"} ·{" "}
+            {KIND_LABEL[str(p.kind) as PlaceKind] ?? str(p.kind)}
+          </p>
           <p className="text-muted-foreground">{str(p.address) || "no address"}</p>
           {str(p.when_notes) && <p className="text-muted-foreground">When: {str(p.when_notes)}</p>}
           {str(p.notes) && <p className="italic">{str(p.notes)}</p>}
@@ -78,7 +81,9 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
           {a?.suggested ? (
             <>
               <p className="mt-1">
-                {a.suggested.name ?? str(p.name)} · {a.suggested.kind ?? str(p.kind)}
+                {a.suggested.name ?? str(p.name)} ·{" "}
+                {KIND_LABEL[(a.suggested.kind ?? str(p.kind)) as PlaceKind] ??
+                  a.suggested.kind ?? str(p.kind)}
               </p>
               <p className="text-muted-foreground">{a.suggested.address ?? "no address"}</p>
               {a.suggested.description && <p className="italic">{a.suggested.description}</p>}
@@ -92,7 +97,8 @@ export function SubmissionCard({ sub }: { sub: Submission }) {
       {a && (
         <p className="mt-2 text-xs text-muted-foreground">
           real: {a.plausible_real_place ? "yes" : "no"} · chess:{" "}
-          {a.chess_relevant ? "yes" : "no"} · duplicate: {a.likely_duplicate_of ?? "no"}
+          {a.chess_relevant ? "yes" : "no"} · duplicate:{" "}
+          {a.likely_duplicate_of ? "likely, use Merge below" : "no"}
           {a.issues.length > 0 && <> · issues: {a.issues.join("; ")}</>}
         </p>
       )}

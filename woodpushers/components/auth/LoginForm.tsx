@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail } from "lucide-react";
 
+function friendlyAuthError(message: string): string {
+  if (/security purposes|rate limit|too many/i.test(message))
+    return "Too many attempts. Wait a minute, then try again.";
+  if (/invalid email/i.test(message)) return "That email does not look right.";
+  return "Could not sign you in, try again.";
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -26,7 +33,7 @@ export function LoginForm() {
       options: { redirectTo },
     });
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
       setBusy(false);
     }
   }
@@ -41,7 +48,7 @@ export function LoginForm() {
       options: { emailRedirectTo: redirectTo },
     });
     setBusy(false);
-    if (error) setError(error.message);
+    if (error) setError(friendlyAuthError(error.message));
     else setSent(true);
   }
 

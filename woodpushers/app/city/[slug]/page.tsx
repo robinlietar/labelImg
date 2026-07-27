@@ -27,14 +27,14 @@ export default async function CityPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: cityRows } = await supabase.rpc("city_detail", { p_slug: slug });
+  const [{ data: cityRows }, { data: placeData }, { data: activeCount }] =
+    await Promise.all([
+      supabase.rpc("city_detail", { p_slug: slug }),
+      supabase.rpc("places_for_city", { city_slug: slug }),
+      supabase.rpc("city_active_players", { city_slug: slug }),
+    ]);
   const city = (cityRows?.[0] ?? null) as CityDetail | null;
   if (!city) notFound();
-
-  const [{ data: placeData }, { data: activeCount }] = await Promise.all([
-    supabase.rpc("places_for_city", { city_slug: slug }),
-    supabase.rpc("city_active_players", { city_slug: slug }),
-  ]);
   const places = (placeData ?? []) as PlacePoint[];
   const active = (activeCount as number | null) ?? 0;
 
@@ -78,6 +78,22 @@ export default async function CityPage({
           className="w-full text-muted-foreground"
         />
       </div>
+
+      {places.length === 0 && (
+        <div className="mt-6 rounded-xl border border-border p-5 text-center">
+          <p className="text-sm">
+            No places on the map in {city.name} yet.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Know a club, cafe, or park where people play? Put it on the map.
+          </p>
+          <Link href="/submit" className="mt-3 inline-block">
+            <span className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
+              Add a place
+            </span>
+          </Link>
+        </div>
+      )}
 
       <ul className="mt-6 flex flex-col divide-y divide-border">
         {places.map((p) => (

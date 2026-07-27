@@ -45,7 +45,13 @@ function restoredView(fallback: ViewState): ViewState {
   return fallback;
 }
 
-export function MapView({ initial }: { initial: ViewState }) {
+export function MapView({
+  initial,
+  homeCityId,
+}: {
+  initial: ViewState;
+  homeCityId?: number;
+}) {
   // Where you left the map wins over the server's guess (home city).
   const [initialView] = useState(() => restoredView(initial));
   const mapRef = useRef<MapRef>(null);
@@ -114,6 +120,24 @@ export function MapView({ initial }: { initial: ViewState }) {
   }, [fetchPlaces, kinds]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // First visit with a home city but no saved viewport: center there without
+  // ever having blocked the initial render on it.
+  useEffect(() => {
+    if (!homeCityId) return;
+    try {
+      if (localStorage.getItem(VIEW_KEY)) return;
+    } catch {
+      return;
+    }
+    fetch(`/api/cities/center?id=${homeCityId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const c = j?.center as { lng: number; lat: number } | null;
+        if (c) mapRef.current?.jumpTo({ center: [c.lng, c.lat], zoom: 11 });
+      })
+      .catch(() => {});
+  }, [homeCityId]);
 
   // If the basemap style fails or is slow (flaky mobile network), the map's
   // load event never fires. Fetch pins from the initial viewport anyway:

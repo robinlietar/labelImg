@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/Avatar";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ProfileActions } from "@/components/players/ProfileActions";
-import { availabilityLabel, activity, type PlayerRow } from "@/lib/players";
+import {
+  availabilityLabel,
+  activity,
+  selfBandLabel,
+  type PlayerRow,
+} from "@/lib/players";
 import { TIME_CONTROLS } from "@/lib/profile";
 
 const TC_LABEL = Object.fromEntries(TIME_CONTROLS.map((t) => [t.value, t.label]));
@@ -63,7 +68,9 @@ export default async function PublicProfile({
         ))}
       </div>
 
+      {(p.lichess_username || p.chesscom_username || selfBandLabel(p.self_rating_band)) && (
       <div className="mt-5 rounded-xl border border-border p-4">
+        {p.lichess_username || p.chesscom_username ? (
         <RatingBadges
           lichessUsername={p.lichess_username}
           lichessRatings={p.lichess_ratings}
@@ -76,7 +83,16 @@ export default async function PublicProfile({
           chesscomTitle={p.chesscom_title}
           chesscomMeta={p.chesscom_meta}
         />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {selfBandLabel(p.self_rating_band)}{" "}
+            <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">
+              Self-declared
+            </span>
+          </p>
+        )}
       </div>
+      )}
 
       {!isSelf && (
         <div className="mt-6">

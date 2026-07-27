@@ -108,8 +108,8 @@ export function OnboardingForm() {
         <span className="text-sm">
           Show me in the players directory
           <span className="block text-xs text-muted-foreground">
-            You can hide anytime. Only a distance band is ever shown, never your
-            location.
+            You can hide anytime. Others only ever see a rough distance, like
+            ~2 km, never your location.
           </span>
         </span>
         <input

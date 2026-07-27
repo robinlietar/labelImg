@@ -11,21 +11,21 @@ const AUTO_APPROVE = 0.85;
 
 export async function POST(request: Request) {
   const user = await getUser();
-  if (!user) return NextResponse.json({ error: "sign in first" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
   if (!(await canSubmit(user.id)))
-    return NextResponse.json({ error: "daily submission limit reached" }, { status: 429 });
+    return NextResponse.json({ error: "You have reached today's submission limit, try again tomorrow." }, { status: 429 });
 
   let payload: SubmissionPayload;
   try {
     payload = (await request.json()) as SubmissionPayload;
   } catch {
-    return NextResponse.json({ error: "bad request body" }, { status: 400 });
+    return NextResponse.json({ error: "Something went wrong reading the form, try again." }, { status: 400 });
   }
   if (!payload?.name?.trim() || !payload?.kind)
-    return NextResponse.json({ error: "name and kind required" }, { status: 400 });
+    return NextResponse.json({ error: "Give the place a name and pick a kind." }, { status: 400 });
   if (!(PLACE_KINDS as readonly string[]).includes(payload.kind))
-    return NextResponse.json({ error: "unknown kind" }, { status: 400 });
+    return NextResponse.json({ error: "Pick a kind from the list." }, { status: 400 });
   // Only http(s) links survive; javascript:/data: are dropped here for good.
   payload.website = safeHttpUrl(payload.website);
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   });
   if (insertError) {
     return NextResponse.json(
-      { error: "could not save the submission, try again" },
+      { error: "Could not save the submission, try again." },
       { status: 500 },
     );
   }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 
@@ -5,29 +6,31 @@ import type { User } from "@supabase/supabase-js";
  * Current authenticated user, or null. Never throws (missing env, outage).
  *
  * Fast path: getClaims() verifies the session JWT locally (asymmetric keys,
- * cached JWKS), avoiding a network round trip to the auth server on every
- * server-rendered page. Falls back to the network check if unavailable.
+ * cached JWKS), avoiding a network round trip on every server-rendered page.
+ * supabase-js RETURNS auth failures rather than throwing, so the network
+ * fallback keys off the returned error: a transient key-fetch hiccup must
+ * degrade to the slower check, never log a real user out. cache() dedupes
+ * the check across one request (layout + page both call this).
  */
-export async function getUser(): Promise<User | null> {
+export const getUser = cache(async (): Promise<User | null> => {
   try {
     const supabase = await createClient();
-    try {
-      const { data } = await supabase.auth.getClaims();
-      const claims = data?.claims;
-      if (claims?.sub) {
-        return { id: claims.sub, email: claims.email } as User;
-      }
-      return null;
-    } catch {
+    const { data, error } = await supabase.auth.getClaims();
+    if (error) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       return user;
     }
+    const claims = data?.claims;
+    if (claims?.sub) {
+      return { id: claims.sub, email: claims.email } as User;
+    }
+    return null;
   } catch {
     return null;
   }
-}
+});
 
 export type Profile = {
   id: string;
@@ -52,12 +55,13 @@ export type Profile = {
   open_today_until: string | null;
   ratings_refreshed_at: string | null;
   home_city_id: number | null;
+  home_city: { name: string; country_code: string } | null;
   visible: boolean;
   last_seen_at: string | null;
 };
 
 /** The current user's profile row, or null if not onboarded yet. Never throws. */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   try {
     const supabase = await createClient();
     const user = await getUser();
@@ -65,12 +69,12 @@ export async function getProfile(): Promise<Profile | null> {
     const { data } = await supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, ratings_refreshed_at, home_city_id, visible, last_seen_at",
+        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, ratings_refreshed_at, home_city_id, home_city:cities(name, country_code), visible, last_seen_at",
       )
       .eq("id", user.id)
       .maybeSingle();
-    return (data as Profile | null) ?? null;
+    return (data as unknown as Profile | null) ?? null;
   } catch {
     return null;
   }
-}
+})

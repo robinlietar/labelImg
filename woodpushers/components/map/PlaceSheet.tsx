@@ -1,15 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { KIND_LABEL, type PlacePoint } from "@/lib/places";
+import { KIND_LABEL, SOURCE_LABEL, type PlacePoint } from "@/lib/places";
 import { ExternalLink, MapPin, X } from "lucide-react";
-
-const SOURCE_LABEL: Record<PlacePoint["source"], string> = {
-  osm: "OpenStreetMap",
-  claude_research: "Researched",
-  user_submission: "Community",
-  import: "Imported",
-};
 
 /** Bottom sheet shown when a map marker is tapped. */
 export function PlaceSheet({

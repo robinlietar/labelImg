@@ -137,7 +137,7 @@ async function DashboardTab({ svc }: { svc: Svc }) {
       cities_scraped: citiesScraped, open_today_now: openNow,
     };
   }
-  const fmt = (v: number | undefined) => (v == null || v < 0 ? "—" : v);
+  const fmt = (v: number | undefined) => (v == null || v < 0 ? "n/a" : v);
   const tiles: Array<[string, number | string, string?]> = [
     ["Users", fmt(st.users_total), `${fmt(st.users_new_7d)} new this week`],
     ["Active this week", fmt(st.users_active_7d), `${fmt(st.users_visible)} visible in directory`],
@@ -156,7 +156,7 @@ async function DashboardTab({ svc }: { svc: Svc }) {
         <p className="mb-3 rounded-lg bg-amber-500/15 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           Full stats need the latest database upgrade: run supabase/upgrade.sql
           in the Supabase SQL Editor. Showing direct counts meanwhile; tiles
-          with a dash need the upgrade.
+          showing n/a need the upgrade.
         </p>
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
