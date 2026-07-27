@@ -40,11 +40,21 @@ export function ChatThread({
   const [menu, setMenu] = useState(false);
   const [, startAction] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const supabase = useRef(createClient());
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-grow the composer with its content (prefilled openers included),
+  // capped at roughly five lines.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
+  }, [text]);
 
   useEffect(() => {
     const sb = supabase.current;
@@ -115,12 +125,18 @@ export function ChatThread({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {otherHandle ? (
-          <Link href={`/p/${otherHandle}`} className="flex flex-1 items-center gap-2 font-medium">
-            <Avatar url={otherAvatarUrl} size={32} /> {otherName}
+          <Link href={`/p/${otherHandle}`} className="flex flex-1 items-center gap-2.5">
+            <Avatar url={otherAvatarUrl} size={36} />
+            <span className="leading-tight">
+              <span className="block font-medium">{otherName}</span>
+              <span className="block text-xs text-muted-foreground">
+                @{otherHandle} · view profile
+              </span>
+            </span>
           </Link>
         ) : (
-          <span className="flex flex-1 items-center gap-2 font-medium">
-            <Avatar url={otherAvatarUrl} size={32} /> {otherName}
+          <span className="flex flex-1 items-center gap-2.5 font-medium">
+            <Avatar url={otherAvatarUrl} size={36} /> {otherName}
           </span>
         )}
         {otherHandle && (
@@ -164,7 +180,9 @@ export function ChatThread({
         )}
       </header>
 
-      <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Bottom-anchor short conversations, like every messenger. */}
+        <div className="flex min-h-full flex-col justify-end space-y-1.5">
         {messages.map((m, i) => {
           const mine = m.sender_id === meId;
           const prev = messages[i - 1];
@@ -214,6 +232,7 @@ export function ChatThread({
           );
         })}
         <div ref={endRef} />
+        </div>
       </div>
 
       {error && (
@@ -225,12 +244,19 @@ export function ChatThread({
         className="flex items-end gap-2 border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <textarea
+          ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Propose a game..."
           rows={1}
           maxLength={2000}
-          className="max-h-32 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-2.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-11 flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-2.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onFocus={() =>
+            setTimeout(
+              () => endRef.current?.scrollIntoView({ behavior: "smooth" }),
+              250,
+            )
+          }
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
