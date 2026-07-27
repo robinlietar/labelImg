@@ -112,6 +112,14 @@ export default async function MePage({
 
       <section className="mt-6">
         <LocationSettings currentCity={cityName} />
+        {profile.home_city && (
+          <a
+            href={`/city/${profile.home_city.slug}`}
+            className="mt-2 block text-center text-sm text-primary underline"
+          >
+            Open the {profile.home_city.name} city page
+          </a>
+        )}
       </section>
 
       <section className="mt-6">

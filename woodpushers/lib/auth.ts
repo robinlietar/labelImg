@@ -55,7 +55,7 @@ export type Profile = {
   open_today_until: string | null;
   ratings_refreshed_at: string | null;
   home_city_id: number | null;
-  home_city: { name: string; country_code: string } | null;
+  home_city: { id: number; name: string; country_code: string; slug: string } | null;
   visible: boolean;
   last_seen_at: string | null;
 };
@@ -69,7 +69,7 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     const { data } = await supabase
       .from("profiles")
       .select(
-        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, ratings_refreshed_at, home_city_id, home_city:cities(name, country_code), visible, last_seen_at",
+        "id, handle, display_name, bio, avatar_url, lichess_username, lichess_ratings, lichess_verified, lichess_title, lichess_meta, chesscom_username, chesscom_ratings, chesscom_verified, chesscom_title, chesscom_meta, preferred_time_controls, availability_status, visiting_until, availability_chips, open_today_until, ratings_refreshed_at, home_city_id, home_city:cities(id, name, country_code, slug), visible, last_seen_at",
       )
       .eq("id", user.id)
       .maybeSingle();
