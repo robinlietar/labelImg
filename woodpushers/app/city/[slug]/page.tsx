@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MiniMap } from "@/components/map/MiniMap";
 import { CityChatRequest } from "@/components/city/CityChatRequest";
+import { ShareButton } from "@/components/ShareButton";
 import type { PlacePoint } from "@/lib/places";
 import { KIND_LABEL } from "@/lib/places";
 import { MessageCircle } from "lucide-react";
@@ -65,6 +66,17 @@ export default async function CityPage({
         ) : (
           <CityChatRequest cityId={city.id} />
         )}
+      </div>
+
+      <div className="mt-3">
+        <ShareButton
+          title={`Chess in ${city.name}`}
+          text={`Places to play chess in ${city.name} and players to meet:`}
+          path={`/city/${city.slug}`}
+          label={`Share chess in ${city.name}`}
+          variant="ghost"
+          className="w-full text-muted-foreground"
+        />
       </div>
 
       <ul className="mt-6 flex flex-col divide-y divide-border">

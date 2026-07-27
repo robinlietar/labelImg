@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/Toaster";
 import { Input } from "@/components/ui/input";
 
 type Step = "input" | "code" | "done";
@@ -44,6 +45,7 @@ export function ChesscomLink({ initialUsername }: { initialUsername: string | nu
       const json = await res.json().catch(() => ({}));
       if (json.verified) {
         setStep("done");
+        toast("chess.com verified");
         router.refresh();
       } else {
         setError(json.error ?? "Not verified yet");
@@ -81,7 +83,10 @@ export function ChesscomLink({ initialUsername }: { initialUsername: string | nu
               Copy this code:{" "}
               <button
                 type="button"
-                onClick={() => navigator.clipboard?.writeText(code)}
+                onClick={() => {
+                  navigator.clipboard?.writeText(code);
+                  toast("Code copied");
+                }}
                 className="rounded bg-background px-2 py-0.5 font-mono font-semibold tracking-widest active:bg-accent"
                 title="Tap to copy"
               >

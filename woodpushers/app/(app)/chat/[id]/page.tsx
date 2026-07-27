@@ -30,7 +30,7 @@ export default async function ChatPage({
   const { data: other } = otherId
     ? await supabase
         .from("profiles")
-        .select("handle, display_name")
+        .select("handle, display_name, avatar_url")
         .eq("id", otherId)
         .maybeSingle()
     : { data: null };
@@ -48,6 +48,7 @@ export default async function ChatPage({
       meId={user.id}
       otherName={other?.display_name ?? "Player"}
       otherHandle={other?.handle ?? null}
+      otherAvatarUrl={other?.avatar_url ?? null}
       initialMessages={(messages ?? []) as ChatMessage[]}
       draft={draft ?? ""}
     />

@@ -47,9 +47,17 @@ export default async function OnboardingLinkPage() {
           </div>
         </div>
 
-        <Link href="/players" className="text-center text-sm text-muted-foreground underline">
-          Skip for now
-        </Link>
+        {profile.lichess_verified || profile.chesscom_verified ? (
+          <Link href="/players" className="block">
+            <Button size="lg" className="w-full">
+              Next
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/players" className="text-center text-sm text-muted-foreground underline">
+            Skip for now
+          </Link>
+        )}
       </div>
     </main>
   );

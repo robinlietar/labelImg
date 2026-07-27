@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Avatar } from "@/components/Avatar";
 import { blockUser, reportUser } from "@/app/(app)/p/actions";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Ban, Flag, MoreHorizontal, Send } from "lucide-react";
@@ -19,6 +20,7 @@ export function ChatThread({
   meId,
   otherName,
   otherHandle,
+  otherAvatarUrl,
   initialMessages,
   draft,
 }: {
@@ -26,6 +28,7 @@ export function ChatThread({
   meId: string;
   otherName: string;
   otherHandle: string | null;
+  otherAvatarUrl?: string | null;
   initialMessages: ChatMessage[];
   draft: string;
 }) {
@@ -64,7 +67,9 @@ export function ChatThread({
             prev.some((x) => x.id === m.id) ? prev : [...prev, m],
           );
           if (m.sender_id !== meId)
-            void sb.rpc("mark_read", { p_conversation_id: conversationId });
+            void sb.rpc("mark_read", { p_conversation_id: conversationId }).then(() => {
+      window.dispatchEvent(new Event("wp:unread-refresh"));
+    });
         },
       )
       .subscribe();
@@ -109,11 +114,13 @@ export function ChatThread({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         {otherHandle ? (
-          <Link href={`/p/${otherHandle}`} className="flex-1 font-medium">
-            {otherName}
+          <Link href={`/p/${otherHandle}`} className="flex flex-1 items-center gap-2 font-medium">
+            <Avatar url={otherAvatarUrl} size={32} /> {otherName}
           </Link>
         ) : (
-          <span className="flex-1 font-medium">{otherName}</span>
+          <span className="flex flex-1 items-center gap-2 font-medium">
+            <Avatar url={otherAvatarUrl} size={32} /> {otherName}
+          </span>
         )}
         {otherHandle && (
           <button

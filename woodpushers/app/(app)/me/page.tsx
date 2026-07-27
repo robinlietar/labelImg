@@ -5,6 +5,8 @@ import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ChesscomLink } from "@/components/profile/ChesscomLink";
 import { AvailabilityToggle } from "@/components/profile/AvailabilityToggle";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { BioEditor } from "@/components/profile/BioEditor";
+import { ShareButton } from "@/components/ShareButton";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
 import { LocationSettings } from "@/components/profile/LocationSettings";
 import { Button } from "@/components/ui/button";
@@ -92,7 +94,20 @@ export default async function MePage({
       </section>
 
       <section className="mt-6">
+        <BioEditor userId={profile.id} initialBio={profile.bio} />
+      </section>
+
+      <section className="mt-6">
         <LocationSettings currentCity={cityName} />
+      </section>
+
+      <section className="mt-6">
+        <ShareButton
+          title="WoodPushers"
+          text="Find over-the-board chess near you: places to play and players to meet."
+          label="Invite friends"
+          className="w-full"
+        />
       </section>
 
       <section className="mt-6">

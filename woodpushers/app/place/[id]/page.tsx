@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MiniMap } from "@/components/map/MiniMap";
 import { PlaceActions } from "@/components/places/PlaceActions";
+import { ShareButton } from "@/components/ShareButton";
 import { KIND_LABEL, type PlaceKind } from "@/lib/places";
 import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
 
@@ -95,6 +96,17 @@ export default async function PlacePage({
 
       <div className="mt-4">
         <PlaceActions placeId={place.id} />
+      </div>
+
+      <div className="mt-3">
+        <ShareButton
+          title={place.name}
+          text={`Chess spot: ${place.name}. Fancy a game there?`}
+          path={`/place/${place.id}`}
+          label="Share this place"
+          variant="ghost"
+          className="w-full text-muted-foreground"
+        />
       </div>
     </main>
   );

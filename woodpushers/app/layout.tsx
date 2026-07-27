@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { APP, SITE_URL } from "@/lib/config";
 import { AppFrame } from "@/components/AppFrame";
+import { Toaster } from "@/components/Toaster";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-dvh antialiased md:bg-muted">
         <AppFrame>{children}</AppFrame>
+        <Toaster />
       </body>
     </html>
   );

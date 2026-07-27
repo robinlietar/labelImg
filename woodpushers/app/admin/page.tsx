@@ -14,6 +14,7 @@ export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
 
 const TABS = [
+  { key: "dashboard", label: "Dashboard" },
   { key: "pending", label: "Scraped queue" },
   { key: "submissions", label: "Submissions" },
   { key: "places", label: "All places" },
@@ -26,14 +27,15 @@ type TabKey = (typeof TABS)[number]["key"];
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; pq?: string }>;
+  searchParams: Promise<{ tab?: string; pq?: string; ps?: string }>;
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
   if (!isAdmin(user.id)) redirect("/");
   const sp = await searchParams;
-  const tab: TabKey = (TABS.find((t) => t.key === sp.tab)?.key ?? "pending") as TabKey;
+  const tab: TabKey = (TABS.find((t) => t.key === sp.tab)?.key ?? "dashboard") as TabKey;
   const pq = sp.pq ?? "";
+  const ps = ["approved","pending","rejected"].includes(sp.ps ?? "") ? sp.ps! : "";
 
   const svc = createServiceClient();
 
@@ -77,9 +79,10 @@ export default async function AdminPage({
       </nav>
 
       <div className="mt-5">
+        {tab === "dashboard" && <DashboardTab svc={svc} />}
         {tab === "pending" && <PendingTab svc={svc} />}
         {tab === "submissions" && <SubmissionsTab svc={svc} />}
-        {tab === "places" && <PlacesTab svc={svc} pq={pq} />}
+        {tab === "places" && <PlacesTab svc={svc} pq={pq} ps={ps} />}
         {tab === "chats" && <ChatsTab svc={svc} />}
         {tab === "runs" && <RunsTab svc={svc} />}
         {tab === "reports" && <ReportsTab svc={svc} />}
@@ -89,6 +92,40 @@ export default async function AdminPage({
 }
 
 type Svc = ReturnType<typeof createServiceClient>;
+
+async function DashboardTab({ svc }: { svc: Svc }) {
+  const { data } = await svc.rpc("admin_stats");
+  const st = (data ?? {}) as Record<string, number>;
+  const tiles: Array<[string, number | string, string?]> = [
+    ["Users", st.users_total ?? 0, `${st.users_new_7d ?? 0} new this week`],
+    ["Active this week", st.users_active_7d ?? 0, `${st.users_visible ?? 0} visible in directory`],
+    ["Linked accounts", st.users_linked ?? 0, "lichess or chess.com verified"],
+    ["Messages", st.messages_total ?? 0, `${st.messages_7d ?? 0} this week`],
+    ["Conversations", st.conversations_total ?? 0, `${st.conversations_active_7d ?? 0} active this week`],
+    ["Likely encounters", st.encounters_likely ?? 0, "chats with meetup language"],
+    ["Places live", st.places_approved ?? 0, `${st.places_pending ?? 0} pending review`],
+    ["I-play-here signals", st.signals_total ?? 0, `${st.submissions_7d ?? 0} submissions this week`],
+    ["Cities scraped", st.cities_scraped ?? 0, `${st.chat_requests ?? 0} city chat requests`],
+    ["Up for a game now", st.open_today_now ?? 0, "open-today flags active"],
+  ];
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        {tiles.map(([label, value, sub]) => (
+          <div key={label} className="rounded-xl border border-border p-4">
+            <p className="text-2xl font-semibold tabular-nums">{value}</p>
+            <p className="mt-0.5 text-sm font-medium">{label}</p>
+            {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Encounters are estimated from meetup language in messages (aggregate
+        count only, message contents are never shown here).
+      </p>
+    </div>
+  );
+}
 
 async function PendingTab({ svc }: { svc: Svc }) {
   const { data } = await svc.rpc("admin_places", {
@@ -128,11 +165,16 @@ async function SubmissionsTab({ svc }: { svc: Svc }) {
   );
 }
 
-async function PlacesTab({ svc, pq }: { svc: Svc; pq: string }) {
-  const searched: AdminPlace[] = pq
-    ? (((await svc.rpc("admin_places", { q: pq, only_pending: false, max_count: 30 }))
-        .data ?? []) as AdminPlace[])
-    : [];
+async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) {
+  const searched: AdminPlace[] =
+    pq || ps
+      ? (((await svc.rpc("admin_places", {
+          q: pq || null,
+          only_pending: false,
+          max_count: 30,
+          p_status: ps || null,
+        })).data ?? []) as AdminPlace[])
+      : [];
   return (
     <div>
       <form method="get" className="flex max-w-xl gap-2">
@@ -148,7 +190,23 @@ async function PlacesTab({ svc, pq }: { svc: Svc; pq: string }) {
           Search
         </button>
       </form>
-      {pq &&
+      <div className="mt-2 flex gap-2 text-xs">
+        {["", "approved", "pending", "rejected"].map((v) => (
+          <a
+            key={v || "all"}
+            href={`/admin?tab=places&pq=${encodeURIComponent(pq)}&ps=${v}`}
+            className={cn(
+              "rounded-full border px-3 py-1",
+              ps === v
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            {v || "all"}
+          </a>
+        ))}
+      </div>
+      {(pq || ps) &&
         (searched.length === 0 ? (
           <Empty>No matches.</Empty>
         ) : (
@@ -158,7 +216,7 @@ async function PlacesTab({ svc, pq }: { svc: Svc; pq: string }) {
             ))}
           </div>
         ))}
-      {!pq && <Empty>Search to find and edit any place, any status.</Empty>}
+      {!pq && !ps && <Empty>Search or pick a status to list places.</Empty>}
     </div>
   );
 }

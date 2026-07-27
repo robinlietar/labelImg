@@ -15,8 +15,21 @@ export async function GET(request: Request) {
       p_lng: lng,
       p_lat: lat,
     });
-    if (error) throw error;
-    return NextResponse.json({ city: data?.[0] ?? null });
+    if (!error && data?.[0]) {
+      return NextResponse.json({ city: data[0] });
+    }
+    // Fallback: reverse geocode the coordinate to a city name and match it
+    // against the cities table. Covers a missing RPC or sparse city data.
+    const { reverseGeocodeCity } = await import("@/lib/nominatim");
+    const name = await reverseGeocodeCity(lng, lat);
+    if (name) {
+      const { data: byName } = await supabase.rpc("search_cities", {
+        q: name,
+        max_count: 1,
+      });
+      if (byName?.[0]) return NextResponse.json({ city: byName[0] });
+    }
+    return NextResponse.json({ city: null });
   } catch {
     return NextResponse.json({ city: null });
   }

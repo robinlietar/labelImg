@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/Avatar";
+import { toast } from "@/components/Toaster";
 import { Camera } from "lucide-react";
 
 /**
@@ -67,9 +68,11 @@ export function AvatarUpload({
         .eq("id", userId);
       if (updErr) throw updErr;
       setPreview(url);
+      toast("Profile photo updated");
       router.refresh();
     } catch {
       setError("Upload failed, try a different photo.");
+      toast("Upload failed", "error");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -86,6 +89,11 @@ export function AvatarUpload({
         aria-label="Change profile picture"
       >
         <Avatar url={preview ?? currentUrl} size={64} />
+        {busy && (
+          <span className="absolute inset-0 grid place-items-center rounded-full bg-background/70">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </span>
+        )}
         <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full border border-border bg-card shadow">
           <Camera className="h-3.5 w-3.5" />
         </span>
@@ -97,7 +105,7 @@ export function AvatarUpload({
         className="hidden"
         onChange={onPick}
       />
-      {busy && <p className="text-xs text-muted-foreground">Uploading...</p>}
+      {busy && <p className="text-xs text-muted-foreground">Uploading your photo...</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );

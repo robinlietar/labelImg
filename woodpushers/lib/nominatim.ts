@@ -35,3 +35,31 @@ export function geocode(
   chain = run.catch(() => undefined);
   return run;
 }
+
+/** Reverse geocode a coordinate to a city/town name. Same 1 req/s discipline. */
+export function reverseGeocodeCity(
+  lng: number,
+  lat: number,
+): Promise<string | null> {
+  const run = chain.then(async () => {
+    await sleep(1100);
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("lon", String(lng));
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("zoom", "10");
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+      if (!res.ok) return null;
+      const json = (await res.json()) as {
+        address?: { city?: string; town?: string; municipality?: string; village?: string };
+      };
+      const a = json.address ?? {};
+      return a.city ?? a.town ?? a.municipality ?? a.village ?? null;
+    } catch {
+      return null;
+    }
+  });
+  chain = run.catch(() => undefined);
+  return run;
+}
