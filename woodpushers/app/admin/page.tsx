@@ -94,22 +94,71 @@ export default async function AdminPage({
 type Svc = ReturnType<typeof createServiceClient>;
 
 async function DashboardTab({ svc }: { svc: Svc }) {
-  const { data } = await svc.rpc("admin_stats");
-  const st = (data ?? {}) as Record<string, number>;
+  const { data, error } = await svc.rpc("admin_stats");
+  let st = (data ?? {}) as Record<string, number>;
+  let degraded = false;
+  if (error || !data) {
+    // admin_stats is not in the database yet (upgrade.sql not applied) or
+    // failed: compute the tiles with direct queries so the dashboard is
+    // never a wall of fake zeros.
+    degraded = true;
+    const since7 = new Date(Date.now() - 7 * 86400000).toISOString();
+    const count = async (q: PromiseLike<{ count: number | null }>) =>
+      (await q).count ?? 0;
+    const [
+      usersTotal, usersNew, usersActive, usersVisible,
+      messagesTotal, messages7d, convTotal,
+      placesApproved, placesPending, subs7d, signals, chatReqs,
+      citiesScraped, openNow,
+    ] = await Promise.all([
+      count(svc.from("profiles").select("id", { count: "exact", head: true })),
+      count(svc.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since7)),
+      count(svc.from("profiles").select("id", { count: "exact", head: true }).gte("last_seen_at", since7)),
+      count(svc.from("profiles").select("id", { count: "exact", head: true }).eq("visible", true)),
+      count(svc.from("messages").select("id", { count: "exact", head: true })),
+      count(svc.from("messages").select("id", { count: "exact", head: true }).gte("created_at", since7)),
+      count(svc.from("conversations").select("id", { count: "exact", head: true })),
+      count(svc.from("places").select("id", { count: "exact", head: true }).eq("status", "approved")),
+      count(svc.from("places").select("id", { count: "exact", head: true }).eq("status", "pending")),
+      count(svc.from("place_submissions").select("id", { count: "exact", head: true }).gte("created_at", since7)),
+      count(svc.from("place_signals").select("place_id", { count: "exact", head: true })),
+      count(svc.from("city_chat_requests").select("id", { count: "exact", head: true })),
+      count(svc.from("cities").select("id", { count: "exact", head: true }).not("last_scraped_at", "is", null)),
+      count(svc.from("profiles").select("id", { count: "exact", head: true }).gt("open_today_until", new Date().toISOString())),
+    ]);
+    st = {
+      users_total: usersTotal, users_new_7d: usersNew,
+      users_active_7d: usersActive, users_visible: usersVisible,
+      users_linked: -1, messages_total: messagesTotal, messages_7d: messages7d,
+      conversations_total: convTotal, conversations_active_7d: -1,
+      encounters_likely: -1, places_approved: placesApproved,
+      places_pending: placesPending, submissions_7d: subs7d,
+      signals_total: signals, chat_requests: chatReqs,
+      cities_scraped: citiesScraped, open_today_now: openNow,
+    };
+  }
+  const fmt = (v: number | undefined) => (v == null || v < 0 ? "—" : v);
   const tiles: Array<[string, number | string, string?]> = [
-    ["Users", st.users_total ?? 0, `${st.users_new_7d ?? 0} new this week`],
-    ["Active this week", st.users_active_7d ?? 0, `${st.users_visible ?? 0} visible in directory`],
-    ["Linked accounts", st.users_linked ?? 0, "lichess or chess.com verified"],
-    ["Messages", st.messages_total ?? 0, `${st.messages_7d ?? 0} this week`],
-    ["Conversations", st.conversations_total ?? 0, `${st.conversations_active_7d ?? 0} active this week`],
-    ["Likely encounters", st.encounters_likely ?? 0, "chats with meetup language"],
-    ["Places live", st.places_approved ?? 0, `${st.places_pending ?? 0} pending review`],
-    ["I-play-here signals", st.signals_total ?? 0, `${st.submissions_7d ?? 0} submissions this week`],
-    ["Cities scraped", st.cities_scraped ?? 0, `${st.chat_requests ?? 0} city chat requests`],
-    ["Up for a game now", st.open_today_now ?? 0, "open-today flags active"],
+    ["Users", fmt(st.users_total), `${fmt(st.users_new_7d)} new this week`],
+    ["Active this week", fmt(st.users_active_7d), `${fmt(st.users_visible)} visible in directory`],
+    ["Linked accounts", fmt(st.users_linked), "lichess or chess.com verified"],
+    ["Messages", fmt(st.messages_total), `${fmt(st.messages_7d)} this week`],
+    ["Conversations", fmt(st.conversations_total), `${fmt(st.conversations_active_7d)} active this week`],
+    ["Likely encounters", fmt(st.encounters_likely), "chats with meetup language"],
+    ["Places live", fmt(st.places_approved), `${fmt(st.places_pending)} pending review`],
+    ["I-play-here signals", fmt(st.signals_total), `${fmt(st.submissions_7d)} submissions this week`],
+    ["Cities scraped", fmt(st.cities_scraped), `${fmt(st.chat_requests)} city chat requests`],
+    ["Up for a game now", fmt(st.open_today_now), "open-today flags active"],
   ];
   return (
     <div>
+      {degraded && (
+        <p className="mb-3 rounded-lg bg-amber-500/15 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+          Full stats need the latest database upgrade: run supabase/upgrade.sql
+          in the Supabase SQL Editor. Showing direct counts meanwhile; tiles
+          with a dash need the upgrade.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         {tiles.map(([label, value, sub]) => (
           <div key={label} className="rounded-xl border border-border p-4">
@@ -284,7 +333,11 @@ async function RunsTab({ svc }: { svc: Svc }) {
               <tr key={r.id} className="border-t border-border align-top">
                 <td className="py-2 pr-3">{new Date(r.started_at).toLocaleString()}</td>
                 <td className="py-2 pr-3">
-                  {r.finished_at ? new Date(r.finished_at).toLocaleTimeString() : "running"}
+                  {r.finished_at
+                    ? new Date(r.finished_at).toLocaleTimeString()
+                    : Date.now() - new Date(r.started_at).getTime() > 15 * 60000
+                      ? "timed out (partial results saved)"
+                      : "running"}
                 </td>
                 <td className="py-2 pr-3">
                   {arr.map((c) => c.slug).filter(Boolean).join(", ") || "-"}

@@ -155,6 +155,11 @@ export async function runScrape(opts: RunOptions = {}): Promise<{
         error: (e as Error).message,
       });
     }
+    // Persist progress after EVERY city: if the platform kills the function
+    // at its duration limit, the run row still shows what happened so far.
+    if (runId) {
+      await svc.from("scrape_runs").update({ cities: summaries }).eq("id", runId);
+    }
   }
 
   if (runId) {
