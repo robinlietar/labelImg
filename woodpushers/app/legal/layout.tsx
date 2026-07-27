@@ -9,7 +9,7 @@ export default function LegalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto w-full max-w-md select-text">
       <header className="flex items-center gap-3 px-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
         <Link
           href="/"

@@ -55,7 +55,7 @@ export default async function PublicProfile({
         </div>
       </header>
 
-      {p.bio && <p className="mt-4 text-sm">{p.bio}</p>}
+      {p.bio && <p className="mt-4 select-text text-sm">{p.bio}</p>}
 
       <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="rounded-full bg-secondary px-2 py-0.5">

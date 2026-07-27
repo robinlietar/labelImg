@@ -60,9 +60,11 @@ export default async function PlacePage({
         />
       </div>
 
-      {place.description && <p className="mt-4 text-sm">{place.description}</p>}
+      {place.description && (
+        <p className="mt-4 select-text text-sm">{place.description}</p>
+      )}
       {place.address && (
-        <p className="mt-3 text-sm text-muted-foreground">{place.address}</p>
+        <p className="mt-3 select-text text-sm text-muted-foreground">{place.address}</p>
       )}
       {place.opening_notes && (
         <p className="mt-2 text-sm text-muted-foreground">

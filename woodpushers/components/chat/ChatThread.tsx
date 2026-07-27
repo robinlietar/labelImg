@@ -210,8 +210,8 @@ export function ChatThread({
                   <div
                     className={
                       mine
-                        ? "rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
-                        : "rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm"
+                        ? "select-text rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-primary-foreground"
+                        : "select-text rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm"
                     }
                   >
                     {m.body}

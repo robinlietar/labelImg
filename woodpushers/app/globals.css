@@ -102,6 +102,18 @@
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* App chrome is not selectable text: stops iOS long-press from
+       highlighting map labels and buttons and popping the copy menu.
+       Real content opts back in with the select-text utility. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
   }
 }
 

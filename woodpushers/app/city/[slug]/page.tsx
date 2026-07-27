@@ -41,7 +41,7 @@ export default async function CityPage({
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-16 pt-6">
       <h1 className="text-2xl font-semibold">Chess in {city.name}</h1>
-      {city.intro && <p className="mt-2 text-sm">{city.intro}</p>}
+      {city.intro && <p className="mt-2 select-text text-sm">{city.intro}</p>}
       <p className="mt-1 text-sm text-muted-foreground">
         {places.length} {places.length === 1 ? "place" : "places"} to play ·{" "}
         {active} active {active === 1 ? "player" : "players"}
