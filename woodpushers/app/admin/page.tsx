@@ -34,7 +34,7 @@ export default async function AdminPage({
   if (!isAdmin(user.id)) redirect("/");
   const sp = await searchParams;
   const tab: TabKey = (TABS.find((t) => t.key === sp.tab)?.key ?? "dashboard") as TabKey;
-  const pq = sp.pq ?? "";
+  const pq = (sp.pq ?? "").trim();
   const ps = ["approved","pending","rejected"].includes(sp.ps ?? "") ? sp.ps! : "";
 
   const svc = createServiceClient();
@@ -215,15 +215,19 @@ async function SubmissionsTab({ svc }: { svc: Svc }) {
 }
 
 async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) {
-  const searched: AdminPlace[] =
-    pq || ps
-      ? (((await svc.rpc("admin_places", {
-          q: pq || null,
-          only_pending: false,
-          max_count: 30,
-          p_status: ps || null,
-        })).data ?? []) as AdminPlace[])
-      : [];
+  // No filters means browse everything, newest first.
+  const LIMIT = 400;
+  const [{ data }, { count }] = await Promise.all([
+    svc.rpc("admin_places", {
+      q: pq || null,
+      only_pending: false,
+      max_count: LIMIT,
+      p_status: ps || null,
+    }),
+    svc.from("places").select("id", { count: "exact", head: true }),
+  ]);
+  const places = (data ?? []) as AdminPlace[];
+  const total = count ?? 0;
   return (
     <div>
       <form method="get" className="flex max-w-xl gap-2">
@@ -255,17 +259,24 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
           </a>
         ))}
       </div>
-      {(pq || ps) &&
-        (searched.length === 0 ? (
-          <Empty>No matches.</Empty>
-        ) : (
-          <div className="mt-3 flex flex-col gap-2">
-            {searched.map((p) => (
+      {places.length === 0 ? (
+        <Empty>{pq || ps ? "No matches." : "No places yet."}</Empty>
+      ) : (
+        <>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {pq || ps
+              ? `${places.length} ${places.length === 1 ? "match" : "matches"}${places.length === LIMIT ? ` (first ${LIMIT} shown, refine to narrow down)` : ""}`
+              : places.length < total
+                ? `Newest ${places.length} of ${total} places, search to find the rest`
+                : `All ${total} places, newest first`}
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
+            {places.map((p) => (
               <EditablePlaceCard key={p.id} place={p} />
             ))}
           </div>
-        ))}
-      {!pq && !ps && <Empty>Search or pick a status to list places.</Empty>}
+        </>
+      )}
     </div>
   );
 }

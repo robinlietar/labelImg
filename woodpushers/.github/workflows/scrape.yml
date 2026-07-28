@@ -1,12 +1,11 @@
 name: Daily scrape (fallback)
 
-# Fallback scheduler if the Vercel plan's function duration limit is too tight
-# for the cron route. Enable ONE of the two schedulers, not both. This workflow
-# is disabled by default; enable it in the repo Actions tab once secrets are set.
+# Manual fallback for the Vercel cron. The Vercel cron at 03:00 UTC is the
+# active scheduler; this workflow only runs when triggered by hand from the
+# Actions tab, and needs CRON_SECRET and SITE_URL set as repo Actions secrets.
+# To switch schedulers, add a schedule block here and remove the Vercel cron.
 
 on:
-  schedule:
-    - cron: "0 3 * * *"
   workflow_dispatch: {}
 
 jobs:
