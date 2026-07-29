@@ -9,12 +9,15 @@ import { SubmissionCard, type Submission } from "@/components/admin/SubmissionCa
 import { EditablePlaceCard, type AdminPlace } from "@/components/admin/EditablePlaceCard";
 import { CityChatEditor, type CityChatRow } from "@/components/admin/CityChatEditor";
 import { ReportRow, type ReportItem } from "@/components/admin/ReportRow";
+import { Avatar } from "@/components/Avatar";
+import { relTime } from "@/lib/time";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
 
 const TABS = [
   { key: "dashboard", label: "Dashboard" },
+  { key: "users", label: "Users" },
   { key: "pending", label: "Scraped queue" },
   { key: "submissions", label: "Submissions" },
   { key: "places", label: "All places" },
@@ -27,7 +30,7 @@ type TabKey = (typeof TABS)[number]["key"];
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; pq?: string; ps?: string }>;
+  searchParams: Promise<{ tab?: string; pq?: string; ps?: string; cq?: string }>;
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
@@ -36,6 +39,7 @@ export default async function AdminPage({
   const tab: TabKey = (TABS.find((t) => t.key === sp.tab)?.key ?? "dashboard") as TabKey;
   const pq = (sp.pq ?? "").trim();
   const ps = ["approved","pending","rejected"].includes(sp.ps ?? "") ? sp.ps! : "";
+  const cq = (sp.cq ?? "").trim();
 
   const svc = createServiceClient();
 
@@ -80,10 +84,11 @@ export default async function AdminPage({
 
       <div className="mt-5">
         {tab === "dashboard" && <DashboardTab svc={svc} />}
+        {tab === "users" && <UsersTab svc={svc} />}
         {tab === "pending" && <PendingTab svc={svc} />}
         {tab === "submissions" && <SubmissionsTab svc={svc} />}
         {tab === "places" && <PlacesTab svc={svc} pq={pq} ps={ps} />}
-        {tab === "chats" && <ChatsTab svc={svc} />}
+        {tab === "chats" && <ChatsTab svc={svc} cq={cq} />}
         {tab === "runs" && <RunsTab svc={svc} />}
         {tab === "reports" && <ReportsTab svc={svc} />}
       </div>
@@ -176,6 +181,135 @@ async function DashboardTab({ svc }: { svc: Svc }) {
   );
 }
 
+type UserProfileRow = {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  visible: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+  lichess_username: string | null;
+  lichess_verified: boolean;
+  chesscom_username: string | null;
+  chesscom_verified: boolean;
+  home_city:
+    | { name: string; country_code: string }
+    | Array<{ name: string; country_code: string }>
+    | null;
+};
+
+async function UsersTab({ svc }: { svc: Svc }) {
+  const [{ data: profData }, authRes] = await Promise.all([
+    svc
+      .from("profiles")
+      .select(
+        "id, handle, display_name, avatar_url, visible, created_at, last_seen_at, lichess_username, lichess_verified, chesscom_username, chesscom_verified, home_city:cities(name, country_code)",
+      )
+      .limit(1000),
+    svc.auth.admin.listUsers({ page: 1, perPage: 1000 }).catch(() => null),
+  ]);
+  const profiles = new Map(
+    ((profData ?? []) as UserProfileRow[]).map((p) => [p.id, p]),
+  );
+  const authUsers = authRes?.data?.users ?? [];
+  // Every registered account, even before onboarding. If the auth admin API
+  // ever fails, fall back to profiles so the tab is never empty.
+  const base = authUsers.length
+    ? authUsers.map((u) => ({
+        id: u.id,
+        email: u.email ?? null,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+      }))
+    : ((profData ?? []) as UserProfileRow[]).map((p) => ({
+        id: p.id,
+        email: null,
+        created_at: p.created_at,
+        last_sign_in_at: null,
+      }));
+  base.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  if (base.length === 0) return <Empty>No users yet.</Empty>;
+
+  const acct = (name: string | null, verified: boolean) =>
+    name ? `${name}${verified ? "" : " (unverified)"}` : null;
+
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">
+        {base.length} registered {base.length === 1 ? "user" : "users"},{" "}
+        {profiles.size} onboarded. Newest first.
+      </p>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr>
+              <th className="py-1.5 pr-3">User</th>
+              <th className="py-1.5 pr-3">Email</th>
+              <th className="py-1.5 pr-3">City</th>
+              <th className="py-1.5 pr-3">Chess accounts</th>
+              <th className="py-1.5 pr-3">Joined</th>
+              <th className="py-1.5 pr-3">Last seen</th>
+              <th className="py-1.5">Visible</th>
+            </tr>
+          </thead>
+          <tbody>
+            {base.map((u) => {
+              const p = profiles.get(u.id);
+              const city = p
+                ? Array.isArray(p.home_city)
+                  ? p.home_city[0]
+                  : p.home_city
+                : null;
+              const accounts = p
+                ? [
+                    acct(p.lichess_username, p.lichess_verified),
+                    acct(p.chesscom_username, p.chesscom_verified),
+                  ].filter(Boolean)
+                : [];
+              return (
+                <tr key={u.id} className="border-t border-border align-top">
+                  <td className="py-2 pr-3">
+                    <span className="flex items-center gap-2">
+                      <Avatar url={p?.avatar_url ?? null} size={28} />
+                      <span>
+                        <span className="block font-medium">
+                          {p?.display_name ?? "Not onboarded"}
+                        </span>
+                        {p && (
+                          <span className="block text-xs text-muted-foreground">
+                            @{p.handle}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </td>
+                  <td className="select-text py-2 pr-3 text-muted-foreground">
+                    {u.email ?? "n/a"}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {city ? `${city.name}, ${city.country_code}` : "-"}
+                  </td>
+                  <td className="py-2 pr-3 text-muted-foreground">
+                    {accounts.length ? accounts.join(" · ") : "-"}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="py-2 pr-3 text-muted-foreground">
+                    {relTime(p?.last_seen_at ?? u.last_sign_in_at)}
+                  </td>
+                  <td className="py-2">{p ? (p.visible ? "yes" : "hidden") : "-"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 async function PendingTab({ svc }: { svc: Svc }) {
   const { data } = await svc.rpc("admin_places", {
     q: null,
@@ -215,8 +349,8 @@ async function SubmissionsTab({ svc }: { svc: Svc }) {
 }
 
 async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) {
-  // No filters means browse everything, newest first.
-  const LIMIT = 400;
+  // No filters means browse everything, one section per city, A to Z.
+  const LIMIT = 1000;
   const [{ data }, { count }] = await Promise.all([
     svc.rpc("admin_places", {
       q: pq || null,
@@ -228,6 +362,20 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
   ]);
   const places = (data ?? []) as AdminPlace[];
   const total = count ?? 0;
+
+  const byCity = new Map<string, AdminPlace[]>();
+  for (const p of places) {
+    const key = p.city_name ?? "No city assigned";
+    const list = byCity.get(key);
+    if (list) list.push(p);
+    else byCity.set(key, [p]);
+  }
+  const sections = [...byCity.entries()].sort(([a], [b]) =>
+    a === "No city assigned" ? 1 : b === "No city assigned" ? -1 : a.localeCompare(b),
+  );
+  for (const [, list] of sections) {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  }
   return (
     <div>
       <form method="get" className="flex max-w-xl gap-2">
@@ -265,43 +413,167 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
         <>
           <p className="mt-3 text-xs text-muted-foreground">
             {pq || ps
-              ? `${places.length} ${places.length === 1 ? "match" : "matches"}${places.length === LIMIT ? ` (first ${LIMIT} shown, refine to narrow down)` : ""}`
-              : places.length < total
-                ? `Newest ${places.length} of ${total} places, search to find the rest`
-                : `All ${total} places, newest first`}
+              ? `${places.length} ${places.length === 1 ? "match" : "matches"} in ${sections.length} ${sections.length === 1 ? "city" : "cities"}`
+              : `${total} places in ${sections.length} cities, A to Z`}
+            {places.length === LIMIT && ` (first ${LIMIT} shown, search to narrow down)`}
           </p>
-          <div className="mt-2 flex flex-col gap-2">
-            {places.map((p) => (
-              <EditablePlaceCard key={p.id} place={p} />
-            ))}
-          </div>
+          {sections.map(([cityName, list]) => (
+            <section key={cityName} className="mt-4">
+              <h2 className="flex items-baseline gap-2 text-sm font-semibold">
+                {cityName}
+                <span className="text-xs font-normal text-muted-foreground">
+                  {list.length}
+                </span>
+              </h2>
+              <div className="mt-1.5 flex flex-col gap-2">
+                {list.map((p) => (
+                  <EditablePlaceCard key={p.id} place={p} />
+                ))}
+              </div>
+            </section>
+          ))}
         </>
       )}
     </div>
   );
 }
 
-async function ChatsTab({ svc }: { svc: Svc }) {
-  const { data } = await svc
-    .from("cities")
-    .select("id, name, slug, intro, city_chats(whatsapp_invite_url, notes)")
-    .in("slug", APP.launchCities as unknown as string[]);
-  const rows: CityChatRow[] = (data ?? []).map((c) => {
+type CityWithChat = {
+  id: number;
+  name: string;
+  country_code?: string | null;
+  slug: string;
+  intro: string | null;
+  city_chats:
+    | { whatsapp_invite_url: string | null; notes: string | null }
+    | Array<{ whatsapp_invite_url: string | null; notes: string | null }>
+    | null;
+};
+
+async function ChatsTab({ svc, cq }: { svc: Svc; cq: string }) {
+  const CITY_SELECT =
+    "id, name, country_code, slug, intro, city_chats(whatsapp_invite_url, notes)";
+  const [launch, withChat, search, reqs] = await Promise.all([
+    svc.from("cities").select(CITY_SELECT).in("slug", APP.launchCities as unknown as string[]),
+    // Any city that already has a chat row, wherever it came from.
+    svc
+      .from("cities")
+      .select(
+        "id, name, country_code, slug, intro, city_chats!inner(whatsapp_invite_url, notes)",
+      ),
+    cq
+      ? svc
+          .from("cities")
+          .select(CITY_SELECT)
+          .ilike("name", `%${cq}%`)
+          .order("population", { ascending: false, nullsFirst: false })
+          .limit(12)
+      : Promise.resolve({ data: [] as CityWithChat[] }),
+    svc.from("city_chat_requests").select("city_id, city:cities(id, name, country_code, slug, intro)"),
+  ]);
+
+  const reqCount = new Map<number, number>();
+  for (const r of (reqs.data ?? []) as Array<{ city_id: number | null }>) {
+    if (r.city_id != null) reqCount.set(r.city_id, (reqCount.get(r.city_id) ?? 0) + 1);
+  }
+
+  const toRow = (c: CityWithChat): CityChatRow => {
     const chat = Array.isArray(c.city_chats) ? c.city_chats[0] : c.city_chats;
     return {
-      city_id: c.id as number,
-      city_name: c.name as string,
-      slug: c.slug as string,
+      city_id: c.id,
+      city_name: c.country_code ? `${c.name}, ${c.country_code}` : c.name,
+      slug: c.slug,
       whatsapp_invite_url: chat?.whatsapp_invite_url ?? null,
       notes: chat?.notes ?? null,
-      intro: (c.intro as string | null) ?? null,
+      intro: c.intro ?? null,
     };
-  });
+  };
+
+  const searchRows = ((search.data ?? []) as CityWithChat[]).map(toRow);
+  const current = new Map<number, CityChatRow>();
+  for (const c of [
+    ...((withChat.data ?? []) as CityWithChat[]),
+    ...((launch.data ?? []) as CityWithChat[]),
+  ]) {
+    if (!current.has(c.id)) current.set(c.id, toRow(c));
+  }
+  const currentRows = [...current.values()].sort((a, b) =>
+    a.city_name.localeCompare(b.city_name),
+  );
+
+  // Cities users asked a group for that have no editor row above yet.
+  const requested = new Map<number, CityChatRow>();
+  for (const r of (reqs.data ?? []) as Array<{
+    city_id: number | null;
+    city: CityWithChat | CityWithChat[] | null;
+  }>) {
+    const c = Array.isArray(r.city) ? r.city[0] : r.city;
+    if (c && !current.has(c.id) && !requested.has(c.id)) {
+      requested.set(c.id, toRow({ ...c, city_chats: null }));
+    }
+  }
+  const requestedRows = [...requested.values()].sort(
+    (a, b) => (reqCount.get(b.city_id) ?? 0) - (reqCount.get(a.city_id) ?? 0),
+  );
+
+  const withRequests = (row: CityChatRow) => {
+    const n = reqCount.get(row.city_id) ?? 0;
+    return (
+      <div key={row.city_id}>
+        {n > 0 && (
+          <p className="mb-1 text-xs text-primary">
+            {n} {n === 1 ? "person" : "people"} requested this group
+          </p>
+        )}
+        <CityChatEditor row={row} />
+      </div>
+    );
+  };
+
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      {rows.map((row) => (
-        <CityChatEditor key={row.city_id} row={row} />
-      ))}
+    <div>
+      <form method="get" className="flex max-w-xl gap-2">
+        <input type="hidden" name="tab" value="chats" />
+        <input
+          type="search"
+          name="cq"
+          defaultValue={cq}
+          placeholder="Search any city to add a WhatsApp group"
+          className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm"
+        />
+        <button className="h-11 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">
+          Search
+        </button>
+      </form>
+
+      {cq && (
+        <section className="mt-4">
+          <h2 className="text-sm font-semibold">Search results</h2>
+          {searchRows.length === 0 ? (
+            <Empty>No city matches &quot;{cq}&quot;.</Empty>
+          ) : (
+            <div className="mt-1.5 grid gap-3 lg:grid-cols-2">
+              {searchRows.map(withRequests)}
+            </div>
+          )}
+        </section>
+      )}
+
+      {requestedRows.length > 0 && (
+        <section className="mt-5">
+          <h2 className="text-sm font-semibold">Requested by users</h2>
+          <div className="mt-1.5 grid gap-3 lg:grid-cols-2">
+            {requestedRows.map(withRequests)}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5">
+        <h2 className="text-sm font-semibold">Current groups</h2>
+        <div className="mt-1.5 grid gap-3 lg:grid-cols-2">
+          {currentRows.map(withRequests)}
+        </div>
+      </section>
     </div>
   );
 }
