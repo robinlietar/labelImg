@@ -9,7 +9,7 @@ export const LICHESS = {
   authorize: "https://lichess.org/oauth",
   token: "https://lichess.org/api/token",
   account: "https://lichess.org/api/account",
-  clientId: process.env.LICHESS_CLIENT_ID ?? "woodpushers-web",
+  clientId: process.env.LICHESS_CLIENT_ID ?? "chessmates-web",
 };
 
 function base64url(buf: Buffer): string {
@@ -100,7 +100,7 @@ export async function fetchLichessProfile(
   let res: Response;
   try {
     res = await fetch(`https://lichess.org/api/user/${username}`, {
-      headers: { "User-Agent": "WoodPushers/0.1" },
+      headers: { "User-Agent": "ChessMates/0.1" },
     });
   } catch {
     return empty;

@@ -25,7 +25,36 @@ export type AdminPlace = {
   lng: number;
   lat: number;
   created_at: string;
+  // Present once migration 0021 is applied.
+  google_place_id?: string | null;
+  rating?: number | null;
+  rating_count?: number | null;
+  photo_url?: string | null;
+  google_refreshed_at?: string | null;
 };
+
+/** Google enrichment state at a glance in the collapsed row. */
+function EnrichChip({ place }: { place: AdminPlace }) {
+  if (place.rating != null) {
+    return (
+      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+        ★ {Number(place.rating).toFixed(1)}
+      </span>
+    );
+  }
+  if (place.google_place_id) {
+    return (
+      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+        enriched
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+      not enriched
+    </span>
+  );
+}
 
 /** Labeled field wrapper so every admin input says what it is. */
 function Field({
@@ -145,6 +174,7 @@ export function EditablePlaceCard({
               {KIND_LABEL[(kind as PlaceKind)] ?? kind}
             </span>
             <StatusChip status={place.status} />
+            <EnrichChip place={place} />
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {place.city_name ?? "no city"} · {address || "no address"} ·{" "}

@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/config";
  * We serialize all calls through a single promise chain to hold the 1 req/s
  * limit process-wide, and only ever call it for entries missing coordinates.
  */
-const USER_AGENT = `WoodPushers/0.1 (${SITE_URL})`;
+const USER_AGENT = `ChessMates/0.1 (${SITE_URL})`;
 
 let chain: Promise<unknown> = Promise.resolve();
 

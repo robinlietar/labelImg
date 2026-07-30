@@ -17,7 +17,7 @@ Two independent things must be configured. Both are dashboard-only, no code.
 2. Top bar project picker > **New project** > name it `woodpushers` > Create > select it.
 3. Left menu > **APIs & Services** > **OAuth consent screen**:
    - User type: **External** > Create.
-   - App name `WoodPushers`, support email: your email, developer contact: your email. Save through the remaining steps (no scopes needed beyond default).
+   - App name `ChessMates`, support email: your email, developer contact: your email. Save through the remaining steps (no scopes needed beyond default).
    - Publishing status: click **Publish app** (leaving it in Testing limits sign-in to allowlisted emails).
 4. **APIs & Services** > **Credentials** > **Create credentials** > **OAuth client ID**:
    - Application type: **Web application**, name `woodpushers-web`.

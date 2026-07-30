@@ -166,7 +166,7 @@ export default async function MePage({
 
       <section className="mt-6">
         <ShareButton
-          title="WoodPushers"
+          title="ChessMates"
           text="Find over-the-board chess near you: places to play and players to meet."
           label="Invite friends"
           className="w-full"

@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/config";
  * pastes into their profile Location field, then read the public API. A proper
  * User-Agent is required or chess.com blocks the request.
  */
-const UA = `WoodPushers/0.1 (${SITE_URL})`;
+const UA = `ChessMates/0.1 (${SITE_URL})`;
 const PUB = "https://api.chess.com/pub/player";
 
 /** 6-char code, no ambiguous characters. */

@@ -31,7 +31,7 @@ type TabKey = (typeof TABS)[number]["key"];
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; pq?: string; ps?: string; cq?: string }>;
+  searchParams: Promise<{ tab?: string; pq?: string; ps?: string; pe?: string; cq?: string }>;
 }) {
   const user = await getUser();
   if (!user) redirect("/login");
@@ -40,6 +40,7 @@ export default async function AdminPage({
   const tab: TabKey = (TABS.find((t) => t.key === sp.tab)?.key ?? "dashboard") as TabKey;
   const pq = (sp.pq ?? "").trim();
   const ps = ["approved","pending","rejected"].includes(sp.ps ?? "") ? sp.ps! : "";
+  const pe = ["yes","no"].includes(sp.pe ?? "") ? sp.pe! : "";
   const cq = (sp.cq ?? "").trim();
 
   const svc = createServiceClient();
@@ -88,7 +89,7 @@ export default async function AdminPage({
         {tab === "users" && <UsersTab svc={svc} />}
         {tab === "pending" && <PendingTab svc={svc} />}
         {tab === "submissions" && <SubmissionsTab svc={svc} />}
-        {tab === "places" && <PlacesTab svc={svc} pq={pq} ps={ps} />}
+        {tab === "places" && <PlacesTab svc={svc} pq={pq} ps={ps} pe={pe} />}
         {tab === "chats" && <ChatsTab svc={svc} cq={cq} />}
         {tab === "runs" && <RunsTab svc={svc} />}
         {tab === "reports" && <ReportsTab svc={svc} />}
@@ -375,7 +376,17 @@ async function SubmissionsTab({ svc }: { svc: Svc }) {
   );
 }
 
-async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) {
+async function PlacesTab({
+  svc,
+  pq,
+  ps,
+  pe,
+}: {
+  svc: Svc;
+  pq: string;
+  ps: string;
+  pe: string;
+}) {
   // No filters means browse everything, one section per city, A to Z.
   const LIMIT = 1000;
   const [{ data }, { count }] = await Promise.all([
@@ -387,7 +398,14 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
     }),
     svc.from("places").select("id", { count: "exact", head: true }),
   ]);
-  const places = (data ?? []) as AdminPlace[];
+  const all = (data ?? []) as AdminPlace[];
+  const enrichedCount = all.filter((p) => p.google_place_id).length;
+  const places =
+    pe === "yes"
+      ? all.filter((p) => p.google_place_id)
+      : pe === "no"
+        ? all.filter((p) => !p.google_place_id)
+        : all;
   const total = count ?? 0;
 
   const byCity = new Map<string, AdminPlace[]>();
@@ -421,11 +439,11 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
           Search
         </button>
       </form>
-      <div className="mt-2 flex gap-2 text-xs">
+      <div className="mt-2 flex flex-wrap gap-2 text-xs">
         {["", "approved", "pending", "rejected"].map((v) => (
           <a
             key={v || "all"}
-            href={`/admin?tab=places&pq=${encodeURIComponent(pq)}&ps=${v}`}
+            href={`/admin?tab=places&pq=${encodeURIComponent(pq)}&ps=${v}&pe=${pe}`}
             className={cn(
               "rounded-full border px-3 py-1",
               ps === v
@@ -434,6 +452,25 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
             )}
           >
             {v || "all"}
+          </a>
+        ))}
+        <span className="mx-1 border-l border-border" />
+        {[
+          ["", "any state"],
+          ["yes", `enriched (${enrichedCount})`],
+          ["no", `not enriched (${all.length - enrichedCount})`],
+        ].map(([v, label]) => (
+          <a
+            key={`pe-${v || "any"}`}
+            href={`/admin?tab=places&pq=${encodeURIComponent(pq)}&ps=${ps}&pe=${v}`}
+            className={cn(
+              "rounded-full border px-3 py-1",
+              pe === v
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            {label}
           </a>
         ))}
       </div>

@@ -1,6 +1,6 @@
 # Place data sources
 
-Where WoodPushers place data comes from, and directories worth feeding from.
+Where ChessMates place data comes from, and directories worth feeding from.
 Legality rule from the spec: no scraping of other apps' proprietary databases.
 Federation directories and open data are fair game.
 

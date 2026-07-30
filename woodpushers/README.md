@@ -1,4 +1,4 @@
-# WoodPushers
+# ChessMates
 
 Over-the-board chess, anywhere in the world. A mobile-first web app with three pillars:
 
