@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/Avatar";
 import { RatingBadges } from "@/components/profile/RatingBadges";
 import { ProfileActions } from "@/components/players/ProfileActions";
+import { FollowButton } from "@/components/players/FollowButton";
 import {
   availabilityLabel,
   activity,
@@ -38,6 +39,20 @@ export default async function PublicProfile({
   const isSelf = user?.id === p.id;
   const act = activity(p.last_seen_at);
 
+  // Missing until migration 0024 runs: degrade to no follow UI.
+  const follow = await supabase
+    .rpc("follow_info", { p_id: p.id })
+    .then(
+      (r) =>
+        (r.data?.[0] ?? null) as {
+          followers: number;
+          following: number;
+          i_follow: boolean;
+          follows_me: boolean;
+        } | null,
+      () => null,
+    );
+
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       {error === "1" && (
@@ -48,11 +63,31 @@ export default async function PublicProfile({
       )}
       <header className="flex items-center gap-4">
         <Avatar url={p.avatar_url} size={64} />
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold">{p.display_name}</h1>
-          <p className="text-sm text-muted-foreground">@{p.handle}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{act.label}</p>
+          <p className="text-sm text-muted-foreground">
+            @{p.handle}
+            {follow && follow.follows_me && !isSelf && (
+              <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">
+                Follows you
+              </span>
+            )}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {act.label}
+            {follow && follow.followers > 0 && (
+              <> · {follow.followers} {follow.followers === 1 ? "mate follows" : "mates follow"} them</>
+            )}
+          </p>
         </div>
+        {follow && !isSelf && (
+          <FollowButton
+            profileId={p.id}
+            initialOn={follow.i_follow}
+            signedIn={!!user}
+            displayName={p.display_name}
+          />
+        )}
       </header>
 
       {p.bio && <p className="mt-4 select-text text-sm">{p.bio}</p>}
