@@ -22,13 +22,18 @@ export function googleEnabled(): boolean {
   return !!process.env.GOOGLE_PLACES_API_KEY;
 }
 
-async function allow(svc: SupabaseClient, kind: UsageKind): Promise<boolean> {
+async function allow(
+  svc: SupabaseClient,
+  kind: UsageKind,
+): Promise<string | null> {
   const { data, error } = await svc.rpc("bump_api_usage", {
     p_kind: kind,
     p_cap: CAPS[kind],
   });
   // Fail closed: no budget table means no spend.
-  return !error && data === true;
+  if (error) return `budget rpc failed (run upgrade.sql): ${error.message}`;
+  if (data !== true) return "budget";
+  return null;
 }
 
 export type GooglePlace = {
@@ -79,19 +84,27 @@ const DETAILS_MASK = [
   "photos.name",
 ].join(",");
 
+export type SearchOutcome = {
+  places: GooglePlace[];
+  /** null on success; "budget" or a human-readable failure otherwise. */
+  error: string | null;
+};
+
 /**
- * Text search (Pro field mask). Returns [] on budget exhaustion or any API
- * problem: enrichment must degrade to nothing, never crash a run.
+ * Text search (Pro field mask). Never throws: enrichment must degrade to
+ * nothing, but the outcome carries WHY it degraded so the admin UI can say
+ * "enable Places API (New)" instead of guessing.
  */
-export async function searchPlaces(
+export async function searchPlacesEx(
   svc: SupabaseClient,
   query: string,
   bias?: { lat: number; lng: number; radiusMeters?: number },
   maxResults = 5,
-): Promise<GooglePlace[]> {
+): Promise<SearchOutcome> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) return [];
-  if (!(await allow(svc, "text_search"))) return [];
+  if (!key) return { places: [], error: "GOOGLE_PLACES_API_KEY is not set" };
+  const denied = await allow(svc, "text_search");
+  if (denied) return { places: [], error: denied };
   try {
     const body: Record<string, unknown> = {
       textQuery: query,
@@ -115,31 +128,48 @@ export async function searchPlaces(
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(12_000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const detail = (await res.text()).slice(0, 300);
+      return { places: [], error: `google ${res.status}: ${detail}` };
+    }
     const json = (await res.json()) as { places?: GooglePlace[] };
-    return json.places ?? [];
-  } catch {
-    return [];
+    return { places: json.places ?? [], error: null };
+  } catch (e) {
+    return { places: [], error: `google fetch: ${(e as Error).message}` };
   }
 }
 
+/** Convenience wrapper when the caller does not need the failure reason. */
+export async function searchPlaces(
+  svc: SupabaseClient,
+  query: string,
+  bias?: { lat: number; lng: number; radiusMeters?: number },
+  maxResults = 5,
+): Promise<GooglePlace[]> {
+  return (await searchPlacesEx(svc, query, bias, maxResults)).places;
+}
+
 /** Full details for one place (Enterprise field mask, tightest budget). */
-export async function placeDetails(
+export async function placeDetailsEx(
   svc: SupabaseClient,
   googlePlaceId: string,
-): Promise<GooglePlace | null> {
+): Promise<{ place: GooglePlace | null; error: string | null }> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) return null;
-  if (!(await allow(svc, "details"))) return null;
+  if (!key) return { place: null, error: "GOOGLE_PLACES_API_KEY is not set" };
+  const denied = await allow(svc, "details");
+  if (denied) return { place: null, error: denied };
   try {
     const res = await fetch(`${BASE}/places/${googlePlaceId}`, {
       headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": DETAILS_MASK },
       signal: AbortSignal.timeout(12_000),
     });
-    if (!res.ok) return null;
-    return (await res.json()) as GooglePlace;
-  } catch {
-    return null;
+    if (!res.ok) {
+      const detail = (await res.text()).slice(0, 300);
+      return { place: null, error: `google ${res.status}: ${detail}` };
+    }
+    return { place: (await res.json()) as GooglePlace, error: null };
+  } catch (e) {
+    return { place: null, error: `google fetch: ${(e as Error).message}` };
   }
 }
 
@@ -153,7 +183,7 @@ export async function fetchPhoto(
 ): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return null;
-  if (!(await allow(svc, "photo"))) return null;
+  if (await allow(svc, "photo")) return null;
   try {
     const res = await fetch(
       `${BASE}/${photoName}/media?maxWidthPx=800&key=${key}`,

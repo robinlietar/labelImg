@@ -27,6 +27,7 @@ export function EnrichButton() {
                 matched?: number;
                 photos?: number;
                 budget_hit?: boolean;
+                first_error?: string | null;
                 error?: string;
               };
               if (!res.ok) {
@@ -35,6 +36,12 @@ export function EnrichButton() {
               }
               if (!json.enabled) {
                 toast("Add GOOGLE_PLACES_API_KEY in Vercel first.", "error");
+                return;
+              }
+              if (json.first_error) {
+                const msg = `Google error: ${json.first_error}`;
+                setLast(msg);
+                toast(msg, "error");
                 return;
               }
               const msg = `Enriched ${json.matched}/${json.processed} places, ${json.photos} photos${json.budget_hit ? " (monthly budget reached)" : ""}`;

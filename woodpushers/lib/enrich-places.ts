@@ -1,8 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   googleEnabled,
-  searchPlaces,
-  placeDetails,
+  searchPlacesEx,
+  placeDetailsEx,
   fetchPhoto,
   bestMatch,
 } from "@/lib/google-places";
@@ -15,6 +15,8 @@ export type EnrichResult = {
   matched: number;
   photos: number;
   budget_hit: boolean;
+  /** First Google failure of the run, for the admin UI. Null when clean. */
+  first_error: string | null;
 };
 
 type PlaceRow = {
@@ -48,8 +50,14 @@ export async function enrichPlaces(
     matched: 0,
     photos: 0,
     budget_hit: false,
+    first_error: null,
   };
   if (!result.enabled) return result;
+  const noteError = (e: string | null) => {
+    if (!e) return;
+    if (e === "budget") result.budget_hit = true;
+    else if (!result.first_error) result.first_error = e;
+  };
 
   const svc = createServiceClient();
   const staleBefore = new Date(
@@ -71,17 +79,16 @@ export async function enrichPlaces(
       const query = [row.name, row.address ?? row.city_name]
         .filter(Boolean)
         .join(", ");
-      const found = await searchPlaces(
+      const { places: found, error: searchError } = await searchPlacesEx(
         svc,
         query,
         { lat: row.lat, lng: row.lng, radiusMeters: 20_000 },
         5,
       );
-      if (found.length === 0) {
-        // Budget exhausted looks identical to no results; probe cheaply by
-        // checking enabled state only once more places keep failing.
-        result.budget_hit = true;
-      }
+      noteError(searchError);
+      // Any search failure repeats for every following place (bad key, API
+      // not enabled, budget gone): stop after the first and surface it.
+      if (searchError) break;
       const match = bestMatch(
         found,
         row.name,
@@ -100,11 +107,14 @@ export async function enrichPlaces(
       continue;
     }
 
-    const details = await placeDetails(svc, googleId);
+    const { place: details, error: detailsError } = await placeDetailsEx(
+      svc,
+      googleId,
+    );
     if (!details) {
-      // Details budget gone: stop the whole run, do not stamp the place so
-      // it is first in line next run.
-      result.budget_hit = true;
+      // Budget gone or hard failure: stop the run, do not stamp the place
+      // so it is first in line next time.
+      noteError(detailsError);
       break;
     }
 
