@@ -19,7 +19,15 @@ export function PlaceSheet({
     <div className="absolute inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-20 p-3">
       <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          {place.photo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={place.photo_url}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            />
+          )}
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-primary">
               {KIND_LABEL[place.kind]}
             </p>

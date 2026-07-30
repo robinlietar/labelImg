@@ -46,4 +46,5 @@ export type PlacePoint = {
   lat: number;
   rating?: number | null;
   open_now?: boolean | null;
+  photo_url?: string | null;
 };
