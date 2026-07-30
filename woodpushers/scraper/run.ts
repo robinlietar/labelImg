@@ -2,8 +2,9 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { geocode } from "@/lib/nominatim";
 import { safeHttpUrl } from "@/lib/utils";
 import { fetchOsm } from "./osm";
-import { fetchResearch } from "./research";
+import { fetchResearch, type EventCandidate } from "./research";
 import { fetchGoogle } from "./google";
+import { nameSimilarity } from "@/lib/geo";
 import { dedupeWithinBatch, isDuplicate, type ExistingPlace } from "./dedupe";
 import type { Candidate, CityRow, CityRunSummary } from "./types";
 
@@ -55,8 +56,11 @@ async function processCity(
   } catch (e) {
     summary.error = `osm: ${(e as Error).message}`;
   }
+  let eventCands: EventCandidate[] = [];
   try {
-    research = await fetchResearch(city);
+    const r = await fetchResearch(city);
+    research = r.places;
+    eventCands = r.events;
   } catch (e) {
     summary.error = [summary.error, `research: ${(e as Error).message}`]
       .filter(Boolean)
@@ -129,11 +133,37 @@ async function processCity(
     }
     // Add to the in-memory set so later candidates dedupe against it too.
     existing.push({
+      id: newId as string,
       name: c.name,
       website: c.website ?? null,
       lng: c.lng!,
       lat: c.lat!,
     });
+  }
+
+  // Events: upsert per (city, title); link to a venue when names match.
+  for (const ev of eventCands) {
+    let placeId: string | null = null;
+    if (ev.venue_name) {
+      let best = 0;
+      for (const e of existing) {
+        const sim = nameSimilarity(ev.venue_name, e.name);
+        if (e.id && sim > best && sim >= 0.6) {
+          best = sim;
+          placeId = e.id;
+        }
+      }
+    }
+    const { error: evError } = await svc.rpc("upsert_scraped_event", {
+      p_city_id: city.id,
+      p_place_id: placeId,
+      p_title: ev.title,
+      p_description: ev.description,
+      p_starts_at: ev.starts_at,
+      p_recurrence: ev.recurrence,
+      p_source_url: safeHttpUrl(ev.source_url),
+    });
+    if (!evError) summary.events_found = (summary.events_found ?? 0) + 1;
   }
 
   await svc.rpc("mark_city_scraped", { p_city_id: city.id });

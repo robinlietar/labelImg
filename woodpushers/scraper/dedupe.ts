@@ -2,6 +2,7 @@ import { domainOf, haversineMeters, nameSimilarity } from "@/lib/geo";
 import type { Candidate } from "./types";
 
 export type ExistingPlace = {
+  id?: string;
   name: string;
   lng: number;
   lat: number;

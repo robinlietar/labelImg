@@ -22,6 +22,29 @@ type RawPlace = {
   description?: string;
 };
 
+type RawEvent = {
+  title?: string;
+  description?: string;
+  venue_name?: string;
+  date?: string;
+  recurrence?: string;
+  source_url?: string;
+};
+
+export type EventCandidate = {
+  title: string;
+  description: string | null;
+  venue_name: string | null;
+  starts_at: string | null;
+  recurrence: string | null;
+  source_url: string;
+};
+
+export type ResearchResult = {
+  places: Candidate[];
+  events: EventCandidate[];
+};
+
 function coerceKind(k: string | undefined): PlaceKind {
   const v = (k ?? "").toLowerCase().replace(/\s+/g, "_");
   return (PLACE_KINDS as readonly string[]).includes(v)
@@ -30,15 +53,24 @@ function coerceKind(k: string | undefined): PlaceKind {
 }
 
 /**
- * One Claude call per city with web search. Returns up to 15 real, currently
- * operating places to play OTB chess, each with a required source_url.
+ * One Claude call per city with web search. Returns real, currently operating
+ * places to play OTB chess (casual venues first) AND the city's chess events:
+ * regular nights and upcoming tournaments. One call feeds both tables.
  */
-export async function fetchResearch(city: CityRow): Promise<Candidate[]> {
+export async function fetchResearch(city: CityRow): Promise<ResearchResult> {
   const system = [
     "You are a local chess scout. Find real, currently operating places to",
-    "play over-the-board chess in the given city: clubs, chess cafes, bars",
-    "with regular chess, park tables, libraries, community centers, tournament",
-    "venues, shops with play space.",
+    "play over-the-board chess in the given city, AND the city's chess events.",
+    "",
+    "PRIORITIZE CASUAL, SOCIAL venues: bars and pubs with chess nights, chess",
+    "cafes, board game bars where chess is played, park and plaza scenes with",
+    "regular players, casual meetup groups with a fixed venue. Federation",
+    "clubs matter too but casual spots come first; a bar with a packed",
+    "Tuesday chess night beats a members-only club.",
+    "",
+    "EVENTS: collect regular nights (e.g. a weekly casual meetup or blitz",
+    "night) and upcoming tournaments or opens in the city, each with where",
+    "and when.",
     "",
     "Use web search. Good sources, roughly in order: the country's national",
     "chess federation club directory (e.g. ECF club finder, FFE clubs, DSB",
@@ -55,10 +87,15 @@ export async function fetchResearch(city: CityRow): Promise<Candidate[]> {
     "Include nothing you cannot source with a URL. Do not invent addresses or",
     "coordinates: omit a field rather than guess.",
     "",
-    "Return ONLY a JSON array (no prose, no code fence) of up to 15 objects:",
-    `{ "name", "kind" (one of ${PLACE_KINDS.join("|")}), "address", "lat",`,
-    ` "lng", "website", "source_url" (REQUIRED), "confidence" (0..1),`,
-    ` "description" (one line) }.`,
+    "Return ONLY a JSON object (no prose, no code fence):",
+    `{ "places": [up to 15 of { "name", "kind" (one of ${PLACE_KINDS.join("|")}),`,
+    ` "address", "lat", "lng", "website", "source_url" (REQUIRED),`,
+    ` "confidence" (0..1), "description" (one line) }],`,
+    ` "events": [up to 10 of { "title", "description" (one line),`,
+    ` "venue_name" (matching a place name above when possible),`,
+    ` "date" (ISO 8601 with timezone, ONLY for one-off dated events),`,
+    ` "recurrence" (human text like "Every Tuesday 19:00", ONLY for regular`,
+    ` nights), "source_url" (REQUIRED) }] }.`,
   ].join("\n");
 
   const message = await anthropic().messages.create({
@@ -74,13 +111,17 @@ export async function fetchResearch(city: CityRow): Promise<Candidate[]> {
     ],
   });
 
-  const parsed = parseJsonLoose<RawPlace[]>(textOf(message));
-  if (!Array.isArray(parsed)) return [];
+  const parsed = parseJsonLoose<
+    { places?: RawPlace[]; events?: RawEvent[] } | RawPlace[]
+  >(textOf(message));
+  // Tolerate the legacy bare-array shape.
+  const rawPlaces = Array.isArray(parsed) ? parsed : (parsed?.places ?? []);
+  const rawEvents = Array.isArray(parsed) ? [] : (parsed?.events ?? []);
 
-  const out: Candidate[] = [];
-  for (const p of parsed) {
+  const places: Candidate[] = [];
+  for (const p of rawPlaces) {
     if (!p.name || !p.source_url) continue; // source_url required
-    out.push({
+    places.push({
       name: p.name,
       kind: coerceKind(p.kind),
       description: p.description ?? null,
@@ -96,5 +137,22 @@ export async function fetchResearch(city: CityRow): Promise<Candidate[]> {
           : 0.5,
     });
   }
-  return out;
+
+  const events: EventCandidate[] = [];
+  for (const e of rawEvents) {
+    if (!e.title || !e.source_url) continue;
+    const starts =
+      e.date && !Number.isNaN(Date.parse(e.date))
+        ? new Date(e.date).toISOString()
+        : null;
+    events.push({
+      title: e.title.slice(0, 140),
+      description: e.description ?? null,
+      venue_name: e.venue_name ?? null,
+      starts_at: starts,
+      recurrence: e.recurrence ?? null,
+      source_url: e.source_url,
+    });
+  }
+  return { places, events };
 }

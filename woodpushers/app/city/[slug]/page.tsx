@@ -6,7 +6,29 @@ import { CityChatRequest } from "@/components/city/CityChatRequest";
 import { ShareButton } from "@/components/ShareButton";
 import type { PlacePoint } from "@/lib/places";
 import { KIND_LABEL } from "@/lib/places";
-import { MessageCircle } from "lucide-react";
+import { CalendarDays, MessageCircle, Repeat } from "lucide-react";
+
+type CityEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string | null;
+  recurrence: string | null;
+  source_url: string | null;
+  place_id: string | null;
+  place_name: string | null;
+};
+
+function eventWhen(e: CityEvent): string | null {
+  if (e.starts_at) {
+    return new Date(e.starts_at).toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }
+  return e.recurrence;
+}
 
 type CityDetail = {
   id: number;
@@ -27,16 +49,28 @@ export default async function CityPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const [{ data: cityRows }, { data: placeData }, { data: activeCount }] =
-    await Promise.all([
-      supabase.rpc("city_detail", { p_slug: slug }),
-      supabase.rpc("places_for_city", { city_slug: slug }),
-      supabase.rpc("city_active_players", { city_slug: slug }),
-    ]);
+  const [
+    { data: cityRows },
+    { data: placeData },
+    { data: activeCount },
+    eventsRes,
+  ] = await Promise.all([
+    supabase.rpc("city_detail", { p_slug: slug }),
+    supabase.rpc("places_for_city", { city_slug: slug }),
+    supabase.rpc("city_active_players", { city_slug: slug }),
+    // Missing until migration 0022 runs: treat as no events, never crash.
+    supabase.rpc("city_events", { p_slug: slug }).then(
+      (r) => r,
+      () => ({ data: null }),
+    ),
+  ]);
   const city = (cityRows?.[0] ?? null) as CityDetail | null;
   if (!city) notFound();
   const places = (placeData ?? []) as PlacePoint[];
   const active = (activeCount as number | null) ?? 0;
+  const events = ((eventsRes.data ?? []) as CityEvent[]).slice(0, 12);
+  const regular = events.filter((e) => !e.starts_at);
+  const dated = events.filter((e) => e.starts_at);
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-16 pt-6">
@@ -67,6 +101,51 @@ export default async function CityPage({
           <CityChatRequest cityId={city.id} />
         )}
       </div>
+
+      {events.length > 0 && (
+        <section className="mt-6">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <CalendarDays className="h-4 w-4 text-primary" /> Chess calendar
+          </h2>
+          <ul className="mt-2 flex flex-col gap-2">
+            {[...dated, ...regular].map((e) => (
+              <li key={e.id} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium leading-snug">{e.title}</p>
+                  {eventWhen(e) && (
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                      {!e.starts_at && <Repeat className="h-3 w-3" />}
+                      {eventWhen(e)}
+                    </span>
+                  )}
+                </div>
+                {e.description && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {e.description}
+                  </p>
+                )}
+                <p className="mt-1 flex gap-3 text-xs">
+                  {e.place_id && e.place_name && (
+                    <Link href={`/place/${e.place_id}`} className="text-primary underline">
+                      {e.place_name}
+                    </Link>
+                  )}
+                  {e.source_url && (
+                    <a
+                      href={e.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground underline"
+                    >
+                      source
+                    </a>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-3">
         <ShareButton

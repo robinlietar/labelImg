@@ -32,6 +32,7 @@ export type CityRunSummary = {
   osm_found: number;
   claude_found: number;
   google_found?: number;
+  events_found?: number;
   inserted: number;
   skipped_dupes: number;
   error?: string;
