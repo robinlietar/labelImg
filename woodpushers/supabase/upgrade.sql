@@ -1120,7 +1120,10 @@ revoke execute on function admin_stats() from public, anon, authenticated;
 grant execute on function admin_stats() to service_role;
 
 -- admin_places gains a status filter (signature change: drop the old one).
+-- Drop BOTH signatures: leaving the 3-arg overload alongside the 4-arg one
+-- makes 3-argument calls ambiguous (42723 on re-run, "not unique" at call).
 drop function if exists admin_places(text, boolean, int);
+drop function if exists admin_places(text, boolean, int, text);
 create function admin_places(
   q text, only_pending boolean, max_count int, p_status text default null
 )
