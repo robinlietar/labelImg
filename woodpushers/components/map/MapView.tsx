@@ -265,7 +265,7 @@ export function MapView({
             }
           />
         </div>
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto min-w-0">
           <KindFilter value={kinds} onChange={onChangeKinds} />
         </div>
         <div className="pointer-events-auto">
