@@ -6,16 +6,10 @@ import { MiniMap } from "@/components/map/MiniMap";
 import { PlaceActions } from "@/components/places/PlaceActions";
 import { FavoriteButton } from "@/components/places/FavoriteButton";
 import { ShareButton } from "@/components/ShareButton";
+import { BackLink } from "@/components/BackLink";
 import { KIND_LABEL, type PlaceKind } from "@/lib/places";
 import { isOpenNow, type StoredHours } from "@/lib/hours";
-import {
-  ArrowLeft,
-  Clock,
-  ExternalLink,
-  MapPin,
-  Phone,
-  Star,
-} from "lucide-react";
+import { Clock, ExternalLink, MapPin, Phone, Star } from "lucide-react";
 
 type Detail = {
   id: string;
@@ -66,9 +60,7 @@ export default async function PlacePage({
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-16 pt-6">
-      <Link href="/" className="flex items-center gap-1 text-sm text-muted-foreground">
-        <ArrowLeft className="h-4 w-4" /> Map
-      </Link>
+      <BackLink fallback="/" label="Back" />
 
       {place.photo_url && (
         // eslint-disable-next-line @next/next/no-img-element
