@@ -10,6 +10,10 @@ import { ShareButton } from "@/components/ShareButton";
 import { VisibilityToggle } from "@/components/profile/VisibilityToggle";
 import { LocationSettings } from "@/components/profile/LocationSettings";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+import { KIND_LABEL } from "@/lib/places";
+import Link from "next/link";
+import { Heart } from "lucide-react";
 
 export const metadata = { title: "Me" };
 
@@ -31,6 +35,22 @@ export default async function MePage({
   const cityName = profile.home_city
     ? `${profile.home_city.name}, ${profile.home_city.country_code}`
     : null;
+
+  // Favorite places, newest first. RLS returns only this user's hearts.
+  const supabase = await createClient();
+  const { data: favData } = await supabase
+    .from("place_favorites")
+    .select("place:places(id, name, kind, address)")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const favorites = (favData ?? [])
+    .map((f) => (Array.isArray(f.place) ? f.place[0] : f.place))
+    .filter(Boolean) as Array<{
+    id: string;
+    name: string;
+    kind: string;
+    address: string | null;
+  }>;
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
@@ -121,6 +141,28 @@ export default async function MePage({
           </a>
         )}
       </section>
+
+      {favorites.length > 0 && (
+        <section className="mt-6 rounded-xl border border-border p-4">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+            Favorite places
+          </h2>
+          <ul className="mt-2 flex flex-col divide-y divide-border">
+            {favorites.map((f) => (
+              <li key={f.id}>
+                <Link href={`/place/${f.id}`} className="block py-2.5">
+                  <span className="block font-medium">{f.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {KIND_LABEL[f.kind as keyof typeof KIND_LABEL] ?? f.kind}
+                    {f.address ? ` · ${f.address}` : ""}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-6">
         <ShareButton

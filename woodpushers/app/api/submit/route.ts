@@ -6,6 +6,8 @@ import { geocode } from "@/lib/nominatim";
 import { safeHttpUrl } from "@/lib/utils";
 import { PLACE_KINDS } from "@/lib/places";
 import { assessSubmission, type NearbyPlace, type SubmissionPayload } from "@/lib/assess";
+import { googleEnabled, searchPlaces, bestMatch } from "@/lib/google-places";
+import { haversineMeters, nameSimilarity } from "@/lib/geo";
 
 const AUTO_APPROVE = 0.85;
 
@@ -42,6 +44,33 @@ export async function POST(request: Request) {
     }
   }
 
+  // Cross-check against Google Places: a match confirms the venue exists,
+  // pins exact coordinates, and fills a missing address.
+  let google: { place_id: string; matched_name: string } | null = null;
+  if (googleEnabled()) {
+    const results = await searchPlaces(
+      svc,
+      [payload.name, payload.address].filter(Boolean).join(", "),
+      lat != null && lng != null ? { lat, lng, radiusMeters: 10_000 } : undefined,
+      5,
+    );
+    const match = bestMatch(
+      results,
+      payload.name,
+      lat != null && lng != null ? { lat, lng } : null,
+      nameSimilarity,
+      haversineMeters,
+    );
+    if (match?.location) {
+      google = { place_id: match.id, matched_name: match.displayName?.text ?? payload.name };
+      lat = match.location.latitude;
+      lng = match.location.longitude;
+      if (!payload.address && match.formattedAddress) {
+        payload.address = match.formattedAddress;
+      }
+    }
+  }
+
   // Nearest existing places for dedupe context.
   let nearest: NearbyPlace[] = [];
   if (lat != null && lng != null) {
@@ -51,12 +80,15 @@ export async function POST(request: Request) {
 
   const assessment = await assessSubmission({ ...payload, lat, lng }, nearest);
 
+  // A Google Places match is strong evidence the venue is real.
+  const score =
+    (assessment?.quality_score ?? 0) + (google ? 0.12 : 0);
   const autoApprove =
     assessment != null &&
     assessment.plausible_real_place &&
     assessment.chess_relevant &&
     !assessment.likely_duplicate_of &&
-    assessment.quality_score >= AUTO_APPROVE &&
+    score >= AUTO_APPROVE &&
     lat != null &&
     lng != null;
 
@@ -75,15 +107,23 @@ export async function POST(request: Request) {
       p_opening_notes: payload.when_notes ?? null,
       p_source: "user_submission",
       p_source_url: payload.website ?? null,
-      p_confidence: assessment?.quality_score ?? 0.85,
+      p_confidence: Math.min(0.98, score) || 0.85,
       p_status: "approved",
     });
     placeId = (newId as string) ?? null;
+    // Remember the Google id so nightly enrichment fills rating, photo and
+    // hours without another search call.
+    if (placeId && google) {
+      await svc
+        .from("places")
+        .update({ google_place_id: google.place_id })
+        .eq("id", placeId);
+    }
   }
 
   const { error: insertError } = await svc.from("place_submissions").insert({
     submitted_by: user.id,
-    payload: { ...payload, lat, lng },
+    payload: { ...payload, lat, lng, google_match: google },
     claude_assessment: assessment,
     place_id: placeId,
     status: autoApprove ? "auto_approved" : "pending",

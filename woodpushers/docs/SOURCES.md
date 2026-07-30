@@ -31,12 +31,25 @@ National federation club directories are the richest structured source:
 - FIDE member federation index (fide.com) for everywhere else
 
 Plus: meetup.com chess groups with fixed venues, lichess team pages and
-chess.com club pages that publish a physical venue, and city subreddits.
+chess.com club pages that publish a physical venue, city subreddits,
+Wikipedia/Wikidata lists of chess clubs, Atlas Obscura and TimeOut style
+"where to play chess" articles, tournament calendars (federation event
+listings, chess-results.com repeat venues), university chess societies, and
+park authority pages that mention permanent chess tables.
 
-## Candidates for later
+## Automated with Google Places (needs GOOGLE_PLACES_API_KEY)
 
-- **Google Places** enrichment (pending an API key): phone, hours, photos,
-  ratings, canonical map links, plus refresh-based address validation.
-- Wikidata/Wikipedia lists of chess clubs (historic clubs, notable venues).
+- **Discovery**: two text searches per scraped city ("chess club in X",
+  "chess cafe in X"), kept only when the venue name mentions chess; lands in
+  the admin review queue at 0.75 confidence.
+- **Enrichment** (nightly, budget-capped): exact coordinates, rating and
+  review count, one photo (stored in Supabase, fetched once), opening hours
+  (drives the map's Open now filter), phone, canonical Google Maps link.
+- **Submission verification**: each user submission is matched against
+  Places; a match confirms the venue, pins coordinates, and fills the
+  address.
+
+All Google calls go through monthly caps in the api_usage table sized to
+stay inside the free per-SKU allowances, so the steady-state cost is zero.
 - Public tournament calendars (chess-results.com organizer venues) to catch
   tournament_venue entries.

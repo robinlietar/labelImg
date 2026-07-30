@@ -10,9 +10,10 @@ export type Candidate = {
   opening_notes?: string | null;
   lat?: number | null;
   lng?: number | null;
-  source: "osm" | "claude_research";
+  source: "osm" | "claude_research" | "google";
   source_url?: string | null;
   confidence: number; // 0..1
+  google_place_id?: string | null;
 };
 
 export type CityRow = {
@@ -30,6 +31,7 @@ export type CityRunSummary = {
   slug: string;
   osm_found: number;
   claude_found: number;
+  google_found?: number;
   inserted: number;
   skipped_dupes: number;
   error?: string;

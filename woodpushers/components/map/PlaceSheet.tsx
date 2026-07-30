@@ -45,6 +45,19 @@ export function PlaceSheet({
           <span className="rounded-full bg-secondary px-2 py-0.5">
             {SOURCE_LABEL[place.source]}
           </span>
+          {place.rating != null && (
+            <span className="rounded-full bg-secondary px-2 py-0.5">
+              ★ {Number(place.rating).toFixed(1)}
+            </span>
+          )}
+          {place.open_now === true && (
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600 dark:text-emerald-400">
+              Open now
+            </span>
+          )}
+          {place.open_now === false && (
+            <span className="rounded-full bg-secondary px-2 py-0.5">Closed</span>
+          )}
         </div>
 
         <div className="mt-4 flex gap-2">

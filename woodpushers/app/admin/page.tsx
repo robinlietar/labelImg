@@ -11,6 +11,7 @@ import { CityChatEditor, type CityChatRow } from "@/components/admin/CityChatEdi
 import { ReportRow, type ReportItem } from "@/components/admin/ReportRow";
 import { Avatar } from "@/components/Avatar";
 import { relTime } from "@/lib/time";
+import { EnrichButton } from "@/components/admin/EnrichButton";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -99,7 +100,24 @@ export default async function AdminPage({
 type Svc = ReturnType<typeof createServiceClient>;
 
 async function DashboardTab({ svc }: { svc: Svc }) {
+  // Google API spend guard: show this month's counters when the table exists.
+  const month = new Date().toISOString().slice(0, 7);
+  const usagePromise = svc
+    .from("api_usage")
+    .select("google_text_searches, google_details, google_photos")
+    .eq("month", month)
+    .maybeSingle()
+    .then((r) => r.data ?? null)
+    .then(
+      (u) =>
+        u as {
+          google_text_searches: number;
+          google_details: number;
+          google_photos: number;
+        } | null,
+    );
   const { data, error } = await svc.rpc("admin_stats");
+  const usage = await usagePromise;
   let st = (data ?? {}) as Record<string, number>;
   let degraded = false;
   if (error || !data) {
@@ -154,6 +172,15 @@ async function DashboardTab({ svc }: { svc: Svc }) {
     ["I-play-here signals", fmt(st.signals_total), `${fmt(st.submissions_7d)} submissions this week`],
     ["Cities scraped", fmt(st.cities_scraped), `${fmt(st.chat_requests)} city chat requests`],
     ["Up for a game now", fmt(st.open_today_now), "open-today flags active"],
+    [
+      "Google API this month",
+      usage
+        ? usage.google_text_searches + usage.google_details + usage.google_photos
+        : 0,
+      usage
+        ? `${usage.google_text_searches} searches · ${usage.google_details} details · ${usage.google_photos} photos`
+        : "no calls yet (caps keep this in the free tier)",
+    ],
   ];
   return (
     <div>
@@ -378,6 +405,9 @@ async function PlacesTab({ svc, pq, ps }: { svc: Svc; pq: string; ps: string }) 
   }
   return (
     <div>
+      <div className="mb-3">
+        <EnrichButton />
+      </div>
       <form method="get" className="flex max-w-xl gap-2">
         <input type="hidden" name="tab" value="places" />
         <input
@@ -594,7 +624,7 @@ async function RunsTab({ svc }: { svc: Svc }) {
             <th className="py-1.5 pr-3">Started</th>
             <th className="py-1.5 pr-3">Finished</th>
             <th className="py-1.5 pr-3">Cities</th>
-            <th className="py-1.5 pr-3">Found (OSM / research)</th>
+            <th className="py-1.5 pr-3">Found (OSM / research / Google)</th>
             <th className="py-1.5 pr-3">Inserted</th>
             <th className="py-1.5">Errors</th>
           </tr>
@@ -605,11 +635,13 @@ async function RunsTab({ svc }: { svc: Svc }) {
               slug?: string;
               osm_found?: number;
               claude_found?: number;
+              google_found?: number;
               inserted?: number;
               error?: string;
             }>;
             const osm = arr.reduce((n, c) => n + (c.osm_found ?? 0), 0);
             const res = arr.reduce((n, c) => n + (c.claude_found ?? 0), 0);
+            const goog = arr.reduce((n, c) => n + (c.google_found ?? 0), 0);
             const inserted = arr.reduce((n, c) => n + (c.inserted ?? 0), 0);
             const cityErrors = arr
               .filter((c) => c.error)
@@ -627,7 +659,7 @@ async function RunsTab({ svc }: { svc: Svc }) {
                 <td className="py-2 pr-3">
                   {arr.map((c) => c.slug).filter(Boolean).join(", ") || "-"}
                 </td>
-                <td className="py-2 pr-3">{osm} / {res}</td>
+                <td className="py-2 pr-3">{osm} / {res} / {goog}</td>
                 <td className="py-2 pr-3 font-medium">{inserted}</td>
                 <td className="max-w-xs select-text py-2 text-xs text-destructive">
                   {r.error ?? (cityErrors.length ? cityErrors.join("; ") : "")}

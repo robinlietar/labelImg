@@ -3,6 +3,7 @@ import { geocode } from "@/lib/nominatim";
 import { safeHttpUrl } from "@/lib/utils";
 import { fetchOsm } from "./osm";
 import { fetchResearch } from "./research";
+import { fetchGoogle } from "./google";
 import { dedupeWithinBatch, isDuplicate, type ExistingPlace } from "./dedupe";
 import type { Candidate, CityRow, CityRunSummary } from "./types";
 
@@ -45,9 +46,10 @@ async function processCity(
     skipped_dupes: 0,
   };
 
-  // Two sources, each isolated so one failing does not lose the other.
+  // Three sources, each isolated so one failing does not lose the others.
   let osm: Candidate[] = [];
   let research: Candidate[] = [];
+  let google: Candidate[] = [];
   try {
     osm = await fetchOsm(city);
   } catch (e) {
@@ -60,10 +62,18 @@ async function processCity(
       .filter(Boolean)
       .join("; ");
   }
+  try {
+    google = await fetchGoogle(svc, city);
+  } catch (e) {
+    summary.error = [summary.error, `google: ${(e as Error).message}`]
+      .filter(Boolean)
+      .join("; ");
+  }
   summary.osm_found = osm.length;
   summary.claude_found = research.length;
+  summary.google_found = google.length;
 
-  let candidates = dedupeWithinBatch([...osm, ...research]);
+  let candidates = dedupeWithinBatch([...osm, ...research, ...google]);
 
   // Geocode entries still missing coordinates (Nominatim, 1 req/s). Drop the
   // ones that still cannot be placed.
@@ -109,6 +119,14 @@ async function processCity(
     });
     if (error || !newId) continue;
     summary.inserted++;
+    // Google-discovered rows keep their place id: enrichment then fills
+    // rating, photo, and hours without another search call.
+    if (c.google_place_id) {
+      await svc
+        .from("places")
+        .update({ google_place_id: c.google_place_id })
+        .eq("id", newId as string);
+    }
     // Add to the in-memory set so later candidates dedupe against it too.
     existing.push({
       name: c.name,

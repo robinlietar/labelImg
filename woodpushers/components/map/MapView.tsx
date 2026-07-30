@@ -63,6 +63,7 @@ export function MapView({
   const [zoom, setZoom] = useState(initialView.zoom);
   const [selected, setSelected] = useState<PlacePoint | null>(null);
   const [kinds, setKinds] = useState<PlaceKind[]>([]);
+  const [openNow, setOpenNow] = useState(false);
   const scheme = useColorScheme();
   const [darkStyleBroken, setDarkStyleBroken] = useState(false);
   const styleUrl =
@@ -149,20 +150,26 @@ export function MapView({
     return () => clearTimeout(t);
   }, [bounds, refresh]);
 
+  // The open-now filter is client-side: hours ship with the pins.
+  const visiblePlaces = useMemo(
+    () => (openNow ? places.filter((p) => p.open_now === true) : places),
+    [places, openNow],
+  );
+
   const index = useMemo(() => {
     const sc = new Supercluster<LeafProps, Record<string, never>>({
       radius: 64,
       maxZoom: 16,
     });
     sc.load(
-      places.map((p) => ({
+      visiblePlaces.map((p) => ({
         type: "Feature" as const,
         properties: { place: p },
         geometry: { type: "Point" as const, coordinates: [p.lng, p.lat] },
       })),
     );
     return sc;
-  }, [places]);
+  }, [visiblePlaces]);
 
   const clusters = useMemo<Feature[]>(() => {
     if (!bounds) return [];
@@ -258,8 +265,28 @@ export function MapView({
             }
           />
         </div>
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex items-center gap-2">
           <KindFilter value={kinds} onChange={onChangeKinds} />
+        </div>
+        <div className="pointer-events-auto">
+          <button
+            onClick={() => setOpenNow((v) => !v)}
+            aria-pressed={openNow}
+            className={
+              openNow
+                ? "flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm"
+                : "flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-sm"
+            }
+          >
+            <span
+              className={
+                openNow
+                  ? "h-2 w-2 rounded-full bg-primary-foreground"
+                  : "h-2 w-2 rounded-full bg-emerald-500"
+              }
+            />
+            Open now
+          </button>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fixturesInBbox } from "@/lib/fixtures";
+import { isOpenNow, type StoredHours } from "@/lib/hours";
 
 /**
  * Approved places within a map viewport. Public. Returns GeoJSON-ish points
@@ -37,7 +38,14 @@ export async function GET(request: Request) {
       kinds,
     });
     if (error) throw error;
-    return NextResponse.json({ places: data ?? [] });
+    // Compute open-now server-side and drop the raw hours: pins stay small.
+    const places = ((data ?? []) as Array<Record<string, unknown>>).map(
+      ({ opening_hours, ...p }) => ({
+        ...p,
+        open_now: isOpenNow(opening_hours as StoredHours | null),
+      }),
+    );
+    return NextResponse.json({ places });
   } catch {
     // Before Supabase is wired up, return empty so the map still renders.
     return NextResponse.json({ places: [] });

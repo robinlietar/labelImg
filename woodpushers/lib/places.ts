@@ -32,6 +32,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   claude_research: "Researched",
   user_submission: "Community",
   import: "Imported",
+  google: "Google Places",
 };
 
 export type PlacePoint = {
@@ -40,7 +41,9 @@ export type PlacePoint = {
   kind: PlaceKind;
   address: string | null;
   website: string | null;
-  source: "osm" | "claude_research" | "user_submission" | "import";
+  source: "osm" | "claude_research" | "user_submission" | "import" | "google";
   lng: number;
   lat: number;
+  rating?: number | null;
+  open_now?: boolean | null;
 };
