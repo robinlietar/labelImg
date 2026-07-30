@@ -17,6 +17,8 @@ export type EnrichResult = {
   budget_hit: boolean;
   /** First Google failure of the run, for the admin UI. Null when clean. */
   first_error: string | null;
+  /** Places (approved or pending) still without a Google match. */
+  unmatched: number;
 };
 
 type PlaceRow = {
@@ -43,6 +45,7 @@ const STALE_DAYS = 30;
 export async function enrichPlaces(
   limit: number,
   deadlineMs?: number,
+  opts?: { retryUnmatched?: boolean },
 ): Promise<EnrichResult> {
   const result: EnrichResult = {
     enabled: googleEnabled(),
@@ -51,6 +54,7 @@ export async function enrichPlaces(
     photos: 0,
     budget_hit: false,
     first_error: null,
+    unmatched: 0,
   };
   if (!result.enabled) return result;
   const noteError = (e: string | null) => {
@@ -60,6 +64,15 @@ export async function enrichPlaces(
   };
 
   const svc = createServiceClient();
+  // A place with no Google listing is normally retried monthly; a retry pass
+  // clears those stamps so freshly clicked runs try everything again now.
+  if (opts?.retryUnmatched) {
+    await svc
+      .from("places")
+      .update({ google_refreshed_at: null })
+      .is("google_place_id", null)
+      .in("status", ["approved", "pending"]);
+  }
   const staleBefore = new Date(
     Date.now() - STALE_DAYS * 86400000,
   ).toISOString();
@@ -177,5 +190,12 @@ export async function enrichPlaces(
     }
     result.matched++;
   }
+
+  const { count } = await svc
+    .from("places")
+    .select("id", { count: "exact", head: true })
+    .is("google_place_id", null)
+    .in("status", ["approved", "pending"]);
+  result.unmatched = count ?? 0;
   return result;
 }

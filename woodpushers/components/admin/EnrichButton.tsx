@@ -21,11 +21,21 @@ export function EnrichButton() {
           start(async () => {
             // Keep requesting passes until the queue is empty, an error
             // surfaces, or the monthly budget is hit: one tap does them all.
+            // An empty queue triggers ONE retry pass over places that had no
+            // Google match before (normally retried monthly).
             let matched = 0;
             let photos = 0;
+            let didRetry = false;
+            let wantRetry = false;
+            let unmatched = 0;
             for (let pass = 0; pass < 25; pass++) {
               try {
-                const res = await fetch("/api/admin/enrich", { method: "POST" });
+                const res = await fetch("/api/admin/enrich", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ retryUnmatched: wantRetry }),
+                });
+                wantRetry = false;
                 const json = (await res.json()) as {
                   enabled?: boolean;
                   processed?: number;
@@ -33,6 +43,7 @@ export function EnrichButton() {
                   photos?: number;
                   budget_hit?: boolean;
                   first_error?: string | null;
+                  unmatched?: number;
                   error?: string;
                 };
                 if (!res.ok) {
@@ -45,6 +56,7 @@ export function EnrichButton() {
                 }
                 matched += json.matched ?? 0;
                 photos += json.photos ?? 0;
+                unmatched = json.unmatched ?? unmatched;
                 if (json.first_error) {
                   const msg = `Google error after ${matched} enriched: ${json.first_error}`;
                   setLast(msg);
@@ -58,14 +70,24 @@ export function EnrichButton() {
                   router.refresh();
                   return;
                 }
-                if (!json.processed) break; // queue empty
+                if (!json.processed) {
+                  if (didRetry) break; // genuinely nothing left to try
+                  // Queue empty: retry places that had no Google match once.
+                  didRetry = true;
+                  wantRetry = true;
+                  setLast("Retrying places without a Google match...");
+                  continue;
+                }
                 setLast(`Working... ${matched} enriched, ${photos} photos so far`);
               } catch {
                 toast("Enrichment failed, try again.", "error");
                 return;
               }
             }
-            const msg = `All done: ${matched} places enriched, ${photos} photos`;
+            const msg =
+              matched === 0
+                ? `Everything is enriched. ${unmatched} ${unmatched === 1 ? "place has" : "places have"} no Google listing (retried monthly).`
+                : `All done: ${matched} enriched, ${photos} photos. ${unmatched} without a Google listing.`;
             setLast(msg);
             toast(msg, "success");
             router.refresh();
