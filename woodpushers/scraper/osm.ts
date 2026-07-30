@@ -1,7 +1,13 @@
 import type { Candidate, CityRow } from "./types";
 import type { PlaceKind } from "@/lib/places";
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+// Main instance plus a mirror: overpass-api.de sheds load from cloud IPs
+// often enough that a single endpoint means whole runs find nothing.
+const OVERPASS_URLS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+const USER_AGENT = `WoodPushers/0.1 (${process.env.NEXT_PUBLIC_SITE_URL ?? "https://woodpushers.vercel.app"})`;
 
 // Chess in many languages, matched against venue names.
 const NAME_REGEX = "chess|schach|échecs|echecs|ajedrez|xadrez|szachy|satranç|шахмат";
@@ -54,13 +60,29 @@ export async function fetchOsm(city: CityRow): Promise<Candidate[]> {
     );
     out center tags;`;
 
-  const res = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-  if (res.status === 429) throw new Error("overpass rate limited");
-  if (!res.ok) throw new Error(`overpass ${res.status}`);
+  let res: Response | null = null;
+  let lastError = "";
+  for (const url of OVERPASS_URLS) {
+    try {
+      const attempt = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": USER_AGENT,
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (attempt.ok) {
+        res = attempt;
+        break;
+      }
+      lastError = `overpass ${attempt.status} (${new URL(url).hostname})`;
+    } catch (e) {
+      lastError = `overpass ${(e as Error).name === "TimeoutError" ? "timeout" : (e as Error).message} (${new URL(url).hostname})`;
+    }
+  }
+  if (!res) throw new Error(lastError || "overpass unreachable");
 
   const json = (await res.json()) as { elements: OverpassElement[] };
   const out: Candidate[] = [];

@@ -611,7 +611,9 @@ async function RunsTab({ svc }: { svc: Svc }) {
             const osm = arr.reduce((n, c) => n + (c.osm_found ?? 0), 0);
             const res = arr.reduce((n, c) => n + (c.claude_found ?? 0), 0);
             const inserted = arr.reduce((n, c) => n + (c.inserted ?? 0), 0);
-            const cityErrors = arr.filter((c) => c.error).map((c) => c.slug);
+            const cityErrors = arr
+              .filter((c) => c.error)
+              .map((c) => `${c.slug}: ${c.error}`);
             return (
               <tr key={r.id} className="border-t border-border align-top">
                 <td className="py-2 pr-3">{new Date(r.started_at).toLocaleString()}</td>
@@ -627,8 +629,8 @@ async function RunsTab({ svc }: { svc: Svc }) {
                 </td>
                 <td className="py-2 pr-3">{osm} / {res}</td>
                 <td className="py-2 pr-3 font-medium">{inserted}</td>
-                <td className="py-2 text-destructive">
-                  {r.error ?? (cityErrors.length ? cityErrors.join(", ") : "")}
+                <td className="max-w-xs select-text py-2 text-xs text-destructive">
+                  {r.error ?? (cityErrors.length ? cityErrors.join("; ") : "")}
                 </td>
               </tr>
             );
