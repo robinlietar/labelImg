@@ -19,6 +19,8 @@ export type EnrichResult = {
   first_error: string | null;
   /** Places (approved or pending) still without a Google match. */
   unmatched: number;
+  /** Rows matching a Google listing already claimed by another row. */
+  duplicates: number;
 };
 
 type PlaceRow = {
@@ -55,6 +57,7 @@ export async function enrichPlaces(
     budget_hit: false,
     first_error: null,
     unmatched: 0,
+    duplicates: 0,
   };
   if (!result.enabled) return result;
   const noteError = (e: string | null) => {
@@ -120,6 +123,27 @@ export async function enrichPlaces(
       continue;
     }
 
+    // Same Google listing already claimed by another row: this row is a
+    // duplicate venue. Stamp it (dedupe.sql merges later) WITHOUT the id,
+    // or the unique index rejects the update and the row jams the queue
+    // front forever, starving everything behind it.
+    if (!row.google_place_id) {
+      const { data: claimed } = await svc
+        .from("places")
+        .select("id")
+        .eq("google_place_id", googleId)
+        .neq("id", row.id)
+        .maybeSingle();
+      if (claimed) {
+        result.duplicates++;
+        await svc
+          .from("places")
+          .update({ google_refreshed_at: new Date().toISOString() })
+          .eq("id", row.id);
+        continue;
+      }
+    }
+
     const { place: details, error: detailsError } = await placeDetailsEx(
       svc,
       googleId,
@@ -174,7 +198,23 @@ export async function enrichPlaces(
       }
     }
 
-    await svc.from("places").update(updates).eq("id", row.id);
+    const { error: updateError } = await svc
+      .from("places")
+      .update(updates)
+      .eq("id", row.id);
+    if (updateError) {
+      // Whatever failed (unique race, bad value), the row must still leave
+      // the queue or it blocks every place behind it on the next pass.
+      if (updateError.code === "23505") result.duplicates++;
+      else if (!result.first_error) {
+        result.first_error = `db update: ${updateError.message}`;
+      }
+      await svc
+        .from("places")
+        .update({ google_refreshed_at: new Date().toISOString() })
+        .eq("id", row.id);
+      continue;
+    }
 
     // Google's pin beats a geocoded or hand-placed one when they disagree
     // by more than a street's width.

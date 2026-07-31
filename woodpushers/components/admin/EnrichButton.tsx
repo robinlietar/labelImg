@@ -28,6 +28,7 @@ export function EnrichButton() {
             let didRetry = false;
             let wantRetry = false;
             let unmatched = 0;
+            let duplicates = 0;
             for (let pass = 0; pass < 25; pass++) {
               try {
                 const res = await fetch("/api/admin/enrich", {
@@ -44,6 +45,7 @@ export function EnrichButton() {
                   budget_hit?: boolean;
                   first_error?: string | null;
                   unmatched?: number;
+                  duplicates?: number;
                   error?: string;
                 };
                 if (!res.ok) {
@@ -56,6 +58,7 @@ export function EnrichButton() {
                 }
                 matched += json.matched ?? 0;
                 photos += json.photos ?? 0;
+                duplicates += json.duplicates ?? 0;
                 unmatched = json.unmatched ?? unmatched;
                 if (json.first_error) {
                   const msg = `Google error after ${matched} enriched: ${json.first_error}`;
@@ -84,10 +87,14 @@ export function EnrichButton() {
                 return;
               }
             }
+            const dupNote =
+              duplicates > 0
+                ? ` ${duplicates} duplicates of already enriched places found: run dedupe.sql to merge them.`
+                : "";
             const msg =
               matched === 0
-                ? `Everything is enriched. ${unmatched} ${unmatched === 1 ? "place has" : "places have"} no Google listing (retried monthly).`
-                : `All done: ${matched} enriched, ${photos} photos. ${unmatched} without a Google listing.`;
+                ? `Everything is enriched. ${unmatched} ${unmatched === 1 ? "place has" : "places have"} no Google listing (retried monthly).${dupNote}`
+                : `All done: ${matched} enriched, ${photos} photos. ${unmatched} without a Google listing.${dupNote}`;
             setLast(msg);
             toast(msg, "success");
             router.refresh();
