@@ -64,21 +64,8 @@ export default async function PublicProfile({
       <header className="flex items-center gap-4">
         <Avatar url={p.avatar_url} size={64} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold">{p.display_name}</h1>
-          <p className="text-sm text-muted-foreground">
-            @{p.handle}
-            {follow && follow.follows_me && !isSelf && (
-              <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">
-                Follows you
-              </span>
-            )}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {act.label}
-            {follow && follow.followers > 0 && (
-              <> · {follow.followers} {follow.followers === 1 ? "mate follows" : "mates follow"} them</>
-            )}
-          </p>
+          <h1 className="truncate text-xl font-semibold">{p.display_name}</h1>
+          <p className="truncate text-sm text-muted-foreground">@{p.handle}</p>
         </div>
         {follow && !isSelf && (
           <FollowButton
@@ -89,6 +76,21 @@ export default async function PublicProfile({
           />
         )}
       </header>
+
+      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        {follow && follow.follows_me && !isSelf && (
+          <span className="whitespace-nowrap rounded-full bg-accent px-2 py-0.5 font-medium text-accent-foreground">
+            Follows you
+          </span>
+        )}
+        <span>{act.label}</span>
+        {follow && follow.followers > 0 && (
+          <span>
+            · {follow.followers}{" "}
+            {follow.followers === 1 ? "mate follows" : "mates follow"} them
+          </span>
+        )}
+      </p>
 
       {p.bio && <p className="mt-4 select-text text-sm">{p.bio}</p>}
 
