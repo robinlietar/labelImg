@@ -3,9 +3,11 @@ import { APP } from "@/lib/config";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "app.chessmates",
     name: APP.name,
     short_name: APP.name,
     description: APP.description,
+    categories: ["social", "sports", "games"],
     start_url: "/",
     display: "standalone",
     background_color: "#f7f4ee",
