@@ -9,7 +9,14 @@ import { ShareButton } from "@/components/ShareButton";
 import { BackLink } from "@/components/BackLink";
 import { KIND_LABEL, type PlaceKind } from "@/lib/places";
 import { isOpenNow, type StoredHours } from "@/lib/hours";
-import { Clock, ExternalLink, MapPin, Phone, Star } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  ExternalLink,
+  MapPin,
+  Phone,
+  Star,
+} from "lucide-react";
 
 type Detail = {
   id: string;
@@ -43,12 +50,33 @@ export default async function PlacePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, user] = await Promise.all([
+  const [{ data }, user, eventsRes] = await Promise.all([
     supabase.rpc("place_detail", { p_id: id }),
     getUser(),
+    // Table missing until migration 0022: degrade to no schedule.
+    supabase
+      .from("events")
+      .select("id, title, starts_at, recurrence, source_url")
+      .eq("place_id", id)
+      .eq("status", "approved")
+      .order("starts_at", { ascending: true, nullsFirst: false })
+      .limit(6)
+      .then(
+        (r) => r,
+        () => ({ data: null }),
+      ),
   ]);
   const place = (data?.[0] ?? null) as Detail | null;
   if (!place) notFound();
+  const schedule = ((eventsRes.data ?? []) as Array<{
+    id: string;
+    title: string;
+    starts_at: string | null;
+    recurrence: string | null;
+    source_url: string | null;
+  }>).filter(
+    (e) => !e.starts_at || new Date(e.starts_at).getTime() > Date.now() - 86400000,
+  );
 
   const directions =
     place.gmaps_url ??
@@ -128,10 +156,33 @@ export default async function PlacePage({
       {place.address && (
         <p className="mt-3 select-text text-sm text-muted-foreground">{place.address}</p>
       )}
-      {place.opening_notes && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          When: {place.opening_notes}
-        </p>
+      {(place.opening_notes || schedule.length > 0) && (
+        <div className="mt-3 rounded-lg border border-border px-3 py-2.5">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <CalendarDays className="h-4 w-4 text-primary" /> When people play
+          </p>
+          {place.opening_notes && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {place.opening_notes}
+            </p>
+          )}
+          {schedule.map((e) => (
+            <p key={e.id} className="mt-1.5 text-sm">
+              <span className="font-medium">{e.title}</span>
+              <span className="text-muted-foreground">
+                {" "}
+                ·{" "}
+                {e.starts_at
+                  ? new Date(e.starts_at).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })
+                  : e.recurrence}
+              </span>
+            </p>
+          ))}
+        </div>
       )}
 
       {weekday && weekday.length > 0 && (

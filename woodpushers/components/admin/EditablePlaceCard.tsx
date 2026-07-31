@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { PLACE_KINDS, KIND_LABEL, SOURCE_LABEL, type PlaceKind } from "@/lib/places";
 import { cn } from "@/lib/utils";
 import { ChevronDown, MapPin } from "lucide-react";
+import { PinEditor } from "@/components/admin/PinEditor";
 
 export type AdminPlace = {
   id: string;
@@ -109,9 +110,10 @@ export function EditablePlaceCard({
   const [website, setWebsite] = useState(place.website ?? "");
   const [description, setDescription] = useState(place.description ?? "");
   const [openingNotes, setOpeningNotes] = useState(place.opening_notes ?? "");
-  const [lat, setLat] = useState(String(place.lat.toFixed(5)));
-  const [lng, setLng] = useState(String(place.lng.toFixed(5)));
+  const [lat, setLat] = useState(String(place.lat.toFixed(6)));
+  const [lng, setLng] = useState(String(place.lng.toFixed(6)));
   const [looking, setLooking] = useState(false);
+  const [showPin, setShowPin] = useState(false);
 
   function lookup() {
     if (!address.trim()) return;
@@ -225,20 +227,37 @@ export function EditablePlaceCard({
             <Field label="Longitude">
               <div className="flex gap-2">
                 <Input value={lng} onChange={(e) => setLng(e.target.value)} />
-                <a
-                  href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="grid h-11 shrink-0 place-items-center rounded-lg border border-border px-3 text-xs"
+                <button
+                  type="button"
+                  onClick={() => setShowPin((v) => !v)}
+                  className={cn(
+                    "grid h-11 shrink-0 place-items-center rounded-lg border px-3 text-xs",
+                    showPin
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border",
+                  )}
                 >
-                  map
-                </a>
+                  {showPin ? "close map" : "adjust pin"}
+                </button>
               </div>
             </Field>
+            {showPin && (
+              <div className="md:col-span-2">
+                <PinEditor
+                  lat={Number(lat) || place.lat}
+                  lng={Number(lng) || place.lng}
+                  onChange={(la, lo) => {
+                    setLat(la.toFixed(6));
+                    setLng(lo.toFixed(6));
+                    setNote("Pin moved. Save to keep the new spot.");
+                  }}
+                />
+              </div>
+            )}
             <Field label="Website">
               <Input value={website} onChange={(e) => setWebsite(e.target.value)} />
             </Field>
-            <Field label="When people play (opening notes)">
+            <Field label="When people play (weekly nights, tournaments)">
               <Input
                 value={openingNotes}
                 onChange={(e) => setOpeningNotes(e.target.value)}

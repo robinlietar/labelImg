@@ -12,6 +12,7 @@ import { ReportRow, type ReportItem } from "@/components/admin/ReportRow";
 import { Avatar } from "@/components/Avatar";
 import { relTime } from "@/lib/time";
 import { EnrichButton } from "@/components/admin/EnrichButton";
+import { AddPlace } from "@/components/admin/AddPlace";
 
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
@@ -423,8 +424,9 @@ async function PlacesTab({
   }
   return (
     <div>
-      <div className="mb-3">
+      <div className="mb-3 flex flex-wrap items-start gap-2">
         <EnrichButton />
+        <AddPlace />
       </div>
       <form method="get" className="flex max-w-xl gap-2">
         <input type="hidden" name="tab" value="places" />
