@@ -34,7 +34,7 @@ export function TipsSheet() {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-[calc(76px+env(safe-area-inset-bottom))] z-30 px-3">
       <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-border bg-card p-4 shadow-xl">
-        <p className="text-base font-semibold">Welcome to ChessMates</p>
+        <p className="text-base font-semibold">Welcome to ChessNow</p>
         <ul className="mt-3 flex flex-col gap-2.5 text-sm">
           <li className="flex items-start gap-2.5">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

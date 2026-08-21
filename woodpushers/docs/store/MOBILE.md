@@ -1,4 +1,4 @@
-# Shipping ChessMates to the App Store and Google Play
+# Shipping ChessNow to the App Store and Google Play
 
 The repo now contains complete native projects (Capacitor 7):
 - `android/` full Android Studio project, icons and splashes generated
@@ -25,7 +25,7 @@ No Mac needed. Two options:
 2. New app > select repo > Capacitor Android. Build the `android/`
    project; Codemagic generates and stores the signing keystore for you.
 3. Download the .aab from the build page.
-4. In Play Console: create app "ChessMates", paste everything from
+4. In Play Console: create app "ChessNow", paste everything from
    LISTING.md (short and full description, category Social), upload
    docs/store/feature-graphic.png, the screenshots in the listed order,
    and the .aab under Production > Create release.
@@ -39,9 +39,9 @@ Build > Generate Signed Bundle. Keep the keystore file safe forever.
 ## 2. iOS (needs a Mac somewhere, Codemagic provides one)
 
 1. In App Store Connect (https://appstoreconnect.apple.com): Apps > plus >
-   New App. Platform iOS, name ChessMates, bundle ID app.chessmates
+   New App. Platform iOS, name ChessNow, bundle ID app.chessnow
    (register it at developer.apple.com > Identifiers first), SKU
-   chessmates-1.
+   chessnow-1.
 2. In Codemagic: same repo, Capacitor iOS build. Connect your App Store
    Connect account (App Manager key): Codemagic handles certificates and
    provisioning automatically and can upload the build straight to

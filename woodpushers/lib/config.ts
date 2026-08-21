@@ -4,8 +4,8 @@
  * single place to change if we ever rename the app.
  */
 export const APP = {
-  name: "ChessMates",
-  tagline: "Over-the-board chess, anywhere",
+  name: "ChessNow",
+  tagline: "Real chess, right now",
   // Launch cities: the owner runs real communities here.
   launchCities: ["sydney", "paris"] as const,
   description:

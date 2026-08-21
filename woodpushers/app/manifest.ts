@@ -3,7 +3,7 @@ import { APP } from "@/lib/config";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "app.chessmates",
+    id: "app.chessnow",
     name: APP.name,
     short_name: APP.name,
     description: APP.description,

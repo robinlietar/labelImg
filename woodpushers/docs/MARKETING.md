@@ -1,4 +1,4 @@
-# ChessMates launch and growth plan
+# ChessNow launch and growth plan
 
 Positioning in one line: **find a real chess game anywhere, tonight.**
 The product's magic moment is landing somewhere and having a board and an
@@ -16,8 +16,8 @@ opponent within the hour. Every piece of content should prove that moment.
 
 ## Instagram (primary channel)
 
-Handle: reserve `@chessmates.app` (fallbacks: `@getchessmates`,
-`@chessmates.club`). Bio: "Find over-the-board chess anywhere. Map, players,
+Handle: reserve `@chessnow.app` (fallbacks: `@getchessnow`,
+`@chessnowapp`). Bio: "Find over-the-board chess anywhere. Map, players,
 events." + link to the app.
 
 Content pillars, in ratio:

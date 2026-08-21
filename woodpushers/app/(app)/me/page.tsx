@@ -233,7 +233,7 @@ export default async function MePage({
 
       <div className="mt-8 flex flex-col gap-2">
         <ShareButton
-          title="ChessMates"
+          title="ChessNow"
           text="Find over-the-board chess near you: places to play and players to meet."
           label="Invite friends"
           className="w-full"

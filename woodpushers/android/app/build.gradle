@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "app.chessmates"
+    namespace "app.chessnow"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.chessmates"
+        applicationId "app.chessnow"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

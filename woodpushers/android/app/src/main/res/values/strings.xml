@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ChessMates</string>
-    <string name="title_activity_main">ChessMates</string>
-    <string name="package_name">app.chessmates</string>
-    <string name="custom_url_scheme">app.chessmates</string>
+    <string name="app_name">ChessNow</string>
+    <string name="title_activity_main">ChessNow</string>
+    <string name="package_name">app.chessnow</string>
+    <string name="custom_url_scheme">app.chessnow</string>
 </resources>

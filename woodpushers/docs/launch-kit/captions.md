@@ -1,12 +1,12 @@
-# ChessMates: Instagram launch kit
+# ChessNow: Instagram launch kit
 
 Everything paste-ready. Slides are in this folder (1080x1350, post as
 carousels in filename order).
 
 ## Account setup (10 minutes, needs your phone)
 
-- Handle: `@chessmates.app` (fallbacks: `@getchessmates`, `@chessmates.club`)
-- Name: ChessMates
+- Handle: `@chessnow.app` (fallbacks: `@getchessnow`, `@chessnowapp`)
+- Name: ChessNow
 - Bio:
   > Find over-the-board chess anywhere ♟♟
   > Maps, players and chess nights, city by city.
@@ -26,7 +26,7 @@ Caption:
 > Full map, weekly chess nights and players up for a game: link in bio.
 >
 > #chess #echecs #parischess #chessclub #blitz #otbchess #chessbar
-> #jardinduluxembourg #chessmates
+> #jardinduluxembourg #chessnow
 
 ## Post 2: Sydney carousel (sydney-1/2/3)
 
@@ -40,13 +40,13 @@ Caption:
 > Link in bio.
 >
 > #chess #sydneychess #hydepark #chessclub #otbchess #socialchess
-> #chessmates
+> #chessnow
 
 ## Post 3: first reel (film at Blitz Society or Hyde Park)
 
 15-30 seconds, phone only. Shot list: open the app on the map (2s), walk
 into the venue (3s), a board mid-game (3s), handshake or laugh (3s), end
-card: "Find a game tonight. ChessMates." Caption:
+card: "Find a game tonight. ChessNow." Caption:
 > Found a game in 20 minutes. That's the whole point.
 > Map, players and chess nights: link in bio.
 
@@ -59,7 +59,7 @@ card: "Find a game tonight. ChessMates." Caption:
 
 ## WhatsApp seed message (send to both communities first)
 
-> ChessMates is live: the map of every place to play in the city, who's
+> ChessNow is live: the map of every place to play in the city, who's
 > up for a game, and the chess calendar. Made it for us. Create your
 > profile and heart your home venue so the city looks alive:
 > https://woodpushers.vercel.app

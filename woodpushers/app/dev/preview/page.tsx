@@ -270,7 +270,7 @@ export default async function PreviewPage({
           </div>
           <div className="mt-6">
             <ShareButton
-              title="ChessMates"
+              title="ChessNow"
               text="Find over-the-board chess near you."
               label="Invite friends"
               className="w-full"

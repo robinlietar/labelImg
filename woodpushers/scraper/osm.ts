@@ -7,7 +7,7 @@ const OVERPASS_URLS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
 ];
-const USER_AGENT = `ChessMates/0.1 (${process.env.NEXT_PUBLIC_SITE_URL ?? "https://woodpushers.vercel.app"})`;
+const USER_AGENT = `ChessNow/0.1 (${process.env.NEXT_PUBLIC_SITE_URL ?? "https://woodpushers.vercel.app"})`;
 
 // Chess in many languages, matched against venue names.
 const NAME_REGEX = "chess|schach|échecs|echecs|ajedrez|xadrez|szachy|satranç|шахмат";

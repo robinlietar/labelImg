@@ -1,13 +1,13 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * ChessMates mobile shell: the native apps load the deployed web app, so
+ * ChessNow mobile shell: the native apps load the deployed web app, so
  * every web release ships to mobile instantly with no store re-review.
  * Update server.url if the production domain changes.
  */
 const config: CapacitorConfig = {
-  appId: "app.chessmates",
-  appName: "ChessMates",
+  appId: "app.chessnow",
+  appName: "ChessNow",
   webDir: "mobile/www",
   server: {
     url: "https://woodpushers.vercel.app",

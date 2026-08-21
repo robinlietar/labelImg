@@ -1,4 +1,4 @@
-package app.chessmates;
+package app.chessnow;
 
 import com.getcapacitor.BridgeActivity;
 

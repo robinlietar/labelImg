@@ -1,12 +1,12 @@
-# ChessMates: store listings, ready to paste
+# ChessNow: store listings, ready to paste
 
 Everything below is copy-paste ready for App Store Connect and Google Play
 Console. Character limits are respected. No em dashes anywhere.
 
 ## Identity
 
-- App name (both stores): **ChessMates**
-- Bundle id / package name: **app.chessmates** (already set in the native projects)
+- App name (both stores): **ChessNow**
+- Bundle id / package name: **app.chessnow** (already set in the native projects)
 - Category: **Social Networking** (iOS primary), **Social** (Android).
   Secondary iOS: Sports.
 - Price: Free. No in-app purchases (simplest review path).
@@ -28,7 +28,7 @@ Console. Character limits are respected. No em dashes anywhere.
 
 ## Full description (both stores)
 
-ChessMates is the map of over-the-board chess. Wherever you are, find a
+ChessNow is the map of over-the-board chess. Wherever you are, find a
 real board and a real opponent.
 
 PLACES
@@ -50,7 +50,7 @@ COMMUNITY
 Join your city's chess community chat, heart your favorite venues, and
 put missing spots on the map for everyone.
 
-ChessMates is built by chess players who kept asking the same question
+ChessNow is built by chess players who kept asking the same question
 in every new city: where does everyone play? Now the answer is one tap
 away.
 
@@ -96,7 +96,7 @@ Data not sold, not used for tracking, no third-party advertising.
 
 ## Review notes (paste in App Review notes field)
 
-ChessMates connects over-the-board chess players. Test account: create
+ChessNow connects over-the-board chess players. Test account: create
 one with any email (magic link) or use Google sign in. Location is
 optional and only ever stored at city level. User content is moderated:
 users can report and block, admins review submissions before they
